@@ -1,0 +1,43 @@
+# Keys & secrets
+code.txt
+*.env
+serviceAccountKey.json
+
+# Dependencies
+node_modules/
+.pio/
+
+# Build outputs
+build/
+*.cache.dill.track.dill
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PlatformIO
+iot/.platformio-local/
+
+# Android
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/local.properties
+
+# iOS
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+
+# macOS
+mobile/macos/Pods/
+
+# Misc
+*.log
