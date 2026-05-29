@@ -9,7 +9,7 @@
 #define AP_PASS "12345678"
 
 // ===== BACKEND =====
-#define BACKEND_URL "http://192.168.1.102:3000"  // May tinh cua ban - cap nhat neu IP thay doi
+#define BACKEND_URL "https://apivendingmachine.thiephaoy.shop"
 #define MACHINE_ID "vending_01"
 #define POLL_INTERVAL 2000    // ms
 #define HEARTBEAT_INTERVAL 30000 // ms

@@ -71,15 +71,18 @@ async function joinQueue(machineId, walletAddress) {
     .doc(machineId)
     .collection(QUEUE_COLLECTION);
 
-  // Check if already in queue
+  // Check if already in queue (filter status in code to avoid composite index)
   const existingSnapshot = await queueRef
     .where("walletAddress", "==", walletAddress.toLowerCase())
-    .where("status", "in", ["waiting", "serving"])
     .get();
 
   if (!existingSnapshot.empty) {
-    const existing = existingSnapshot.docs[0];
-    return { id: existing.id, ...existing.data() };
+    const existing = existingSnapshot.docs.find((d) =>
+      ["waiting", "serving"].includes(d.data().status)
+    );
+    if (existing) {
+      return { id: existing.id, ...existing.data() };
+    }
   }
 
   // Count current waiting queue size
@@ -131,28 +134,34 @@ async function getQueuePosition(machineId, walletAddress) {
     .doc(machineId)
     .collection(QUEUE_COLLECTION);
 
-  // Get the user's entry
+  // Get the user's entry (filter status in code)
   const userSnapshot = await queueRef
     .where("walletAddress", "==", walletAddress.toLowerCase())
-    .where("status", "in", ["waiting", "serving"])
     .get();
 
   if (userSnapshot.empty) return null;
 
-  const userEntry = userSnapshot.docs[0];
-  const userData = userEntry.data();
+  const userDoc = userSnapshot.docs.find((d) =>
+    ["waiting", "serving"].includes(d.data().status)
+  );
+  if (!userDoc) return null;
 
-  // Count people ahead (joinedAt earlier, still waiting)
-  const aheadSnapshot = await queueRef
+  const userData = userDoc.data();
+
+  // Count people ahead: all waiting entries with joinedAt earlier
+  const waitingSnapshot = await queueRef
     .where("status", "==", "waiting")
-    .where("joinedAt", "<", userData.joinedAt)
     .get();
 
+  const aheadCount = waitingSnapshot.docs.filter((d) =>
+    d.data().joinedAt < userData.joinedAt
+  ).length;
+
   return {
-    queueId: userEntry.id,
+    queueId: userDoc.id,
     ...userData,
-    position: aheadSnapshot.size + 1,
-    peopleAhead: aheadSnapshot.size,
+    position: aheadCount + 1,
+    peopleAhead: aheadCount,
   };
 }
 
@@ -163,20 +172,29 @@ async function serveNext(machineId) {
     .collection(QUEUE_COLLECTION);
 
   // Find the next waiting entry (earliest joinedAt)
+  // Sử dụng where đơn giản + sort thủ công để tránh cần composite index
   const snapshot = await queueRef
     .where("status", "==", "waiting")
-    .orderBy("joinedAt", "asc")
-    .limit(1)
     .get();
 
   if (snapshot.empty) return null;
 
-  const doc = snapshot.docs[0];
+  // Sort by joinedAt manually
+  const docs = snapshot.docs.map((doc) => ({ doc, ...doc.data() }));
+  docs.sort((a, b) => {
+    const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+    const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  const first = docs[0];
+  const firstDoc = first.doc;
+  const firstData = firstDoc.data();
   const timeoutSec = require("../config/env").QUEUE_TIMEOUT_SEC;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + timeoutSec * 1000).toISOString();
 
-  await doc.ref.update({
+  await firstDoc.ref.update({
     status: "serving",
     position: 0,
     servingAt: now.toISOString(),
@@ -184,12 +202,11 @@ async function serveNext(machineId) {
   });
 
   // Recalculate positions for remaining waiting entries
-  const remainingSnapshot = await queueRef.where("status", "==", "waiting").orderBy("joinedAt", "asc").get();
-  for (let i = 0; i < remainingSnapshot.docs.length; i++) {
-    await remainingSnapshot.docs[i].ref.update({ position: i + 1 });
+  for (let i = 1; i < docs.length; i++) {
+    await docs[i].doc.ref.update({ position: i + 1 });
   }
 
-  return { id: doc.id, ...doc.data(), status: "serving", position: 0, servingAt: now.toISOString(), expiresAt };
+  return { id: firstDoc.id, ...firstData, status: "serving", position: 0, servingAt: now.toISOString(), expiresAt };
 }
 
 async function completeServing(machineId, queueId) {

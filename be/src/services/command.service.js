@@ -28,16 +28,25 @@ async function createCommand(machineId, { slot, orderId, productName, queueId })
 }
 
 async function getPendingCommands(machineId) {
+  // Dùng where đơn giản không orderBy để tránh cần composite index
+  // Sau đó sort thủ công trong code
   const snapshot = await db
     .collection(MACHINES_COLLECTION)
     .doc(machineId)
     .collection(COMMANDS_COLLECTION)
     .where("status", "==", "pending")
-    .orderBy("createdAt", "asc")
-    .limit(5)
     .get();
 
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const commands = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  // Sort by createdAt ascending, rồi giới hạn 5 kết quả
+  commands.sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  return commands.slice(0, 5);
 }
 
 async function getCommand(machineId, commandId) {
