@@ -139,30 +139,30 @@ void changeState(UIState newState) {
 
 // ===== NOTIFICATION =====
 static char notificationMsg[100] = "";
-static bool hasNotification = false;
+static bool notifActive = false;
 static unsigned long notificationTime = 0;
 #define NOTIFICATION_DURATION 5000 // 5 giay
 
 void setNotification(const char* msg) {
   strncpy(notificationMsg, msg, 99);
   notificationMsg[99] = '\0';
-  hasNotification = true;
+  notifActive = true;
   notificationTime = millis();
   Serial.printf("[TFT] Notification: %s\n", msg);
 }
 
 void clearNotification() {
-  hasNotification = false;
+  notifActive = false;
   notificationMsg[0] = '\0';
 }
 
 bool hasNotification() {
   // Tu dong xoa notification sau 5 giay
-  if (hasNotification && millis() - notificationTime > NOTIFICATION_DURATION) {
-    hasNotification = false;
+  if (notifActive && millis() - notificationTime > NOTIFICATION_DURATION) {
+    notifActive = false;
     notificationMsg[0] = '\0';
   }
-  return hasNotification;
+  return notifActive;
 }
 
 const char* getNotificationMsg() {

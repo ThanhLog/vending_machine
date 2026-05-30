@@ -103,9 +103,10 @@ void loop() {
       // Reset order
       resetOrderNumber();
       // Clear WiFi preferences
-      prefs.begin("network", false);
-      prefs.clear();
-      prefs.end();
+      Preferences wipePrefs;
+      wipePrefs.begin("network", false);
+      wipePrefs.clear();
+      wipePrefs.end();
       Serial.println("[Serial] WiFi credentials erased");
       Serial.println("[Serial] Restarting ESP32 in 2 seconds...");
       delay(2000);
