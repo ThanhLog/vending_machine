@@ -115,6 +115,25 @@ const MACHINES = [
     ],
   },
   {
+    id: "machine-hanoi-05",
+    name: "Vending Machine Hanoi 05",
+    location: "Khu vực Hà Đông, Hà Nội",
+    latitude: 20.957741,
+    longitude: 105.732028,
+    isOnline: true,
+    temperature: 4.5,
+    products: 0,
+    mode: "normal",
+    slots: [
+      { slot: "1", name: "Coca Cola",       price: "15000 VND",  priceETH: 0.001,  status: "available" },
+      { slot: "2", name: "Pepsi",           price: "14000 VND",  priceETH: 0.0009, status: "available" },
+      { slot: "3", name: "Sting Đỏ",        price: "12000 VND",  priceETH: 0.0008, status: "available" },
+      { slot: "4", name: "Red Bull",        price: "20000 VND",  priceETH: 0.0013, status: "available" },
+      { slot: "5", name: "Nước Suối",       price: "5000 VND",   priceETH: 0.0003, status: "available" },
+      { slot: "6", name: "Trà Xanh C2",     price: "10000 VND",  priceETH: 0.0007, status: "available" },
+    ],
+  },
+  {
     id: "machine-hcm-02",
     name: "Vending Machine HCM 02",
     location: "Số 456 Lê Văn Việt, Quận 9, TP.HCM",
@@ -232,6 +251,7 @@ async function seed() {
         .collection("slots")
         .doc(slot.slot)
         .set({
+          slot: slot.slot,
           name: slot.name,
           price: slot.price,
           priceETH: slot.priceETH,

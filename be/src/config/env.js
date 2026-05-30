@@ -22,7 +22,7 @@ module.exports = {
   // Vending machine coordinates (Hanoi)
   VENDING_LAT: parseFloat(process.env.VENDING_LAT || "21.0288"),
   VENDING_LNG: parseFloat(process.env.VENDING_LNG || "105.8540"),
-  PROXIMITY_RADIUS_M: parseInt(process.env.PROXIMITY_RADIUS_M || "100", 10),
+  PROXIMITY_RADIUS_M: parseInt(process.env.PROXIMITY_RADIUS_M || "50", 10),
 
   // Queue
   QUEUE_TIMEOUT_SEC: parseInt(process.env.QUEUE_TIMEOUT_SEC || "120", 10),

@@ -12,10 +12,14 @@ async function listMachines(userLat, userLng) {
   const machines = await firebaseService.getAllMachines();
 
   if (userLat != null && userLng != null) {
-    return machines.map((m) => ({
-      ...m,
-      distance: calculateDistance(userLat, userLng, m.latitude, m.longitude),
-    })).sort((a, b) => a.distance - b.distance);
+    const radiusKm = env.PROXIMITY_RADIUS_M / 1000; // convert meters to km
+    return machines
+      .map((m) => ({
+        ...m,
+        distance: calculateDistance(userLat, userLng, m.latitude, m.longitude),
+      }))
+      .filter((m) => m.distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance);
   }
 
   return machines;
