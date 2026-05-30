@@ -49,13 +49,21 @@ class WalletService {
 
     final valueInWei = _etherToWei(amount);
 
+    // Lấy gas price hiện tại và tăng thêm để tx nhanh confirm
+    final currentGas = await client!.getGasPrice();
+    final gasPrice = EtherAmount.fromBigInt(
+      EtherUnit.wei,
+      (currentGas.getInWei * BigInt.from(150)) ~/ BigInt.from(100), // +50%
+    );
+
     final txHash = await client!.sendTransaction(
       credentials!,
 
       Transaction(
         to: EthereumAddress.fromHex(to),
-
+        maxGas: 21000,
         value: EtherAmount.fromBigInt(EtherUnit.wei, valueInWei),
+        gasPrice: gasPrice,
       ),
 
       chainId: 11155111,
