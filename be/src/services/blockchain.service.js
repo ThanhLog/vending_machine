@@ -60,7 +60,8 @@ async function verifyPayment(txHash, expectedAmountETH = PRODUCT_PRICE_ETH) {
       return { valid: false, reason: "Transaction reverted on chain" };
     }
 
-    logger.info("Payment verified:", txHash, "from:", tx.from);
+    const confirmations = await receipt.confirmations();
+    logger.info("Payment verified:", txHash, "from:", tx.from, "confirmations:", confirmations);
     return {
       valid: true,
       from: tx.from.toLowerCase(),
