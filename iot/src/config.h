@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // ===== SYSTEM =====
 #define DEBUG true
@@ -10,7 +10,7 @@
 
 // ===== BACKEND =====
 #define BACKEND_URL "https://apivendingmachine.thiephaoy.shop"
-#define MACHINE_ID "vending_01"
+#define MACHINE_ID "machine-hanoi-05"
 #define POLL_INTERVAL 2000    // ms
 #define HEARTBEAT_INTERVAL 30000 // ms
 
