@@ -6,6 +6,7 @@
  */
 
 #include <Arduino.h>
+#include <Preferences.h>
 #include "config.h"
 #include "pins.h"
 #include "network/network.h"
@@ -97,6 +98,18 @@ void loop() {
     if (cmd == "reset") {
       resetOrderNumber();
       Serial.println("[Serial] System reset - Order counter reset to 1");
+    } else if (cmd == "resetall") {
+      Serial.println("[Serial] FULL RESET - Clearing all stored data...");
+      // Reset order
+      resetOrderNumber();
+      // Clear WiFi preferences
+      prefs.begin("network", false);
+      prefs.clear();
+      prefs.end();
+      Serial.println("[Serial] WiFi credentials erased");
+      Serial.println("[Serial] Restarting ESP32 in 2 seconds...");
+      delay(2000);
+      ESP.restart();
     } else if (cmd == "status") {
       Serial.printf("[Serial] Machine: %s\n", MACHINE_NAME);
       Serial.printf("[Serial] ID: %s\n", MACHINE_ID);
@@ -105,7 +118,7 @@ void loop() {
       Serial.printf("[Serial] WiFi: %s\n", isWiFiConnected() ? "Connected" : "Disconnected");
     } else {
       Serial.printf("[Serial] Unknown command: %s\n", cmd.c_str());
-      Serial.println("[Serial] Available: reset, status");
+      Serial.println("[Serial] Available: reset, resetall, status");
     }
   }
 
