@@ -181,13 +181,17 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
                             },
                             icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8), size: 28),
                           ),
-                          Text(
-                            widget.machineName.toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF94A3B8),
-                              letterSpacing: 1.2,
+                          Flexible(
+                            child: Text(
+                              widget.machineName.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF94A3B8),
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
                         ],

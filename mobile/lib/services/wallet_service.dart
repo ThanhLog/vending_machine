@@ -61,6 +61,30 @@ class WalletService {
       chainId: 11155111,
     );
 
+    if (txHash == null) return null;
+
+    // Doi transaction duoc xac nhan (can cho Sepolia ~15-20s)
+    print("Tx sent: $txHash, waiting for confirmation...");
+    try {
+      final receipt = await client!.getTransactionReceipt(txHash);
+      // Poll cho den khi receipt co (toi da 60s)
+      final startTime = DateTime.now();
+      while (receipt == null) {
+        if (DateTime.now().difference(startTime).inSeconds > 60) {
+          print("Tx confirmation timeout after 60s");
+          return txHash; // Van tra ve txHash, backend se poll lai
+        }
+        await Future.delayed(const Duration(seconds: 2));
+        final r = await client!.getTransactionReceipt(txHash);
+        if (r != null) break;
+        print("Still waiting for confirmation...");
+      }
+      print("Tx confirmed: $txHash");
+    } catch (e) {
+      print("Warning: Could not wait for receipt: $e");
+      // Van tra ve txHash - backend se kiem tra lai
+    }
+
     return txHash;
   }
 
