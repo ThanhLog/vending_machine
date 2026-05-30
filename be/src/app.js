@@ -21,6 +21,7 @@ app.use("/api/vending", require("./routes/vending.route"));
 app.use("/api/wallet", require("./routes/wallet.route"));
 app.use("/api/product", require("./routes/product.route"));
 app.use("/api/command", require("./routes/command.route"));
+app.use("/api/admin", require("./routes/admin.route"));
 
 // Error handling
 app.use(notFound);

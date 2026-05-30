@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Quan Ly May Ban Hang</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#0f172a;color:#fff;min-height:100vh}
+    .header{background:#1e293b;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155}
+    .header h1{font-size:20px;color:#06b6d4}
+    .header .logout{color:#94a3b8;text-decoration:none;font-size:14px;padding:8px 16px;border:1px solid #334155;border-radius:6px}
+    .header .logout:hover{background:#334155}
+    .container{max-width:800px;margin:0 auto;padding:24px}
+    .card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #334155}
+    .card h2{font-size:18px;margin-bottom:16px;color:#06b6d4}
+    .form-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .form-row input, .form-row select{flex:1;min-width:120px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;font-size:14px}
+    .form-row select{appearance:auto}
+    .btn{padding:10px 20px;border:0;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;transition:all .2s}
+    .btn-add{background:#06b6d4;color:#000}
+    .btn-add:hover{background:#0891b2}
+    .btn-edit{background:#f59e0b;color:#000}
+    .btn-edit:hover{background:#d97706}
+    .btn-del{background:#ef4444;color:#fff}
+    .btn-del:hover{background:#dc2626}
+    .btn-avail{background:#10b981;color:#fff}
+    .btn-avail:hover{background:#059669}
+    .btn-save{background:#8b5cf6;color:#fff;padding:12px 24px}
+    .btn-save:hover{background:#7c3aed}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid #334155;font-size:14px}
+    th{color:#94a3b8;font-weight:600;font-size:13px;text-transform:uppercase}
+    .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold}
+    .badge-avail{background:#10b98122;color:#10b981}
+    .badge-sold{background:#ef444422;color:#ef4444}
+    .badge-unavail{background:#6b728022;color:#6b7280}
+    .actions{display:flex;gap:6px}
+    .empty{text-align:center;color:#64748b;padding:40px}
+    .alert{padding:12px 16px;border-radius:8px;margin-bottom:12px;font-size:14px;display:none}
+    .alert-success{background:#10b98122;color:#10b981;border:1px solid #10b98144}
+    .alert-error{background:#ef444422;color:#ef4444;border:1px solid #ef444444}
+    .slot-badge{background:#06b6d422;color:#06b6d4;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:bold}
+    .note{color:#94a3b8;font-size:12px;margin-top:4px}
+    .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center}
+    .modal.active{display:flex}
+    .modal-content{background:#1e293b;padding:24px;border-radius:12px;width:420px;max-width:90vw}
+    .modal-content h3{font-size:18px;margin-bottom:16px;color:#06b6d4}
+    #machineSelect{width:100%;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;font-size:16px;margin-bottom:16px}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚙️ Quan Ly May Ban Hang</h1>
+    <span style="color:#94a3b8;font-size:13px" id="currentMachine">Chon may...</span>
+  </div>
+
+  <div class="container">
+    <!-- Machine Selector -->
+    <div class="card">
+      <h2>📋 Chon May</h2>
+      <select id="machineSelect" onchange="onMachineChange()">
+        <option value="">-- Chon may ban hang --</option>
+      </select>
+    </div>
+
+    <!-- Product List -->
+    <div class="card" id="productCard" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">📦 San Pham</h2>
+        <button class="btn btn-add" onclick="showAddModal()">+ Them San Pham</button>
+      </div>
+      <div id="alertSuccess" class="alert alert-success"></div>
+      <div id="alertError" class="alert alert-error"></div>
+      <div id="productTable"></div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal" id="productModal">
+    <div class="modal-content">
+      <h3 id="modalTitle">Them San Pham Moi</h3>
+      <input type="hidden" id="editSlot">
+      <div class="form-row">
+        <input type="text" id="slotNum" placeholder="So khe (1, 2, 3...)" style="flex:0.5">
+        <input type="text" id="prodName" placeholder="Ten san pham">
+      </div>
+      <div class="form-row">
+        <input type="text" id="prodPrice" placeholder="Gia hien thi (VD: 15000 VND)">
+        <input type="number" id="prodPriceETH" placeholder="Gia ETH (VD: 0.001)" step="0.0001" min="0">
+      </div>
+      <div class="form-row">
+        <select id="prodStatus">
+          <option value="available">Available - Dang ban</option>
+          <option value="sold">Sold - Da ban</option>
+          <option value="unavailable">Unavailable - Khong su dung</option>
+        </select>
+      </div>
+      <p class="note">⚠️ May cua ban co 3 cell (a1, a2, a3) tuong ung slot 1, 2, 3</p>
+      <div style="display:flex;gap:12px;margin-top:16px">
+        <button class="btn btn-save" onclick="saveProduct()" style="flex:1">💾 Luu</button>
+        <button class="btn" onclick="closeModal()" style="flex:1;background:#334155;color:#fff">Huy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASS = new URLSearchParams(location.search).get('token') || '';
+    const BASE = '/api/admin';
+    let currentMachine = '';
+
+    // ── Load machines ─────────────────────────────────
+    async function loadMachines() {
+      try {
+        const res = await fetch(`${BASE}/machines`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        if (!data.success) return;
+        const sel = document.getElementById('machineSelect');
+        data.data.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.name || m.id} (${m.id})`;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Machine changed ───────────────────────────────
+    async function onMachineChange() {
+      currentMachine = document.getElementById('machineSelect').value;
+      document.getElementById('currentMachine').textContent = currentMachine || 'Chon may...';
+      if (!currentMachine) {
+        document.getElementById('productCard').style.display = 'none';
+        return;
+      }
+      document.getElementById('productCard').style.display = 'block';
+      await loadProducts();
+    }
+
+    // ── Load products ─────────────────────────────────
+    async function loadProducts() {
+      try {
+        const res = await fetch(`${BASE}/machine/${currentMachine}/slots`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        renderTable(data.data || []);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Render table ──────────────────────────────────
+    function renderTable(slots) {
+      const container = document.getElementById('productTable');
+      if (!slots.length) {
+        container.innerHTML = '<div class="empty">Chua co san pham nao. Bam "Them San Pham" de them.</div>';
+        return;
+      }
+
+      let html = `<table>
+        <thead><tr>
+          <th>Slot</th><th>Ten SP</th><th>Gia VND</th><th>Gia ETH</th><th>Trang Thai</th><th></th>
+        </tr></thead><tbody>`;
+
+      slots.forEach(p => {
+        const statusClass = p.status === 'available' ? 'badge-avail' :
+                            p.status === 'sold' ? 'badge-sold' : 'badge-unavail';
+        const statusText = p.status === 'available' ? 'Dang ban' :
+                           p.status === 'sold' ? 'Da ban' : 'Khong SD';
+        html += `<tr>
+          <td><span class="slot-badge">${p.slot}</span></td>
+          <td><b>${p.name || '(chua co ten)'}</b></td>
+          <td>${p.price || '-'}</td>
+          <td>${p.priceETH || '0.001'} ETH</td>
+          <td><span class="badge ${statusClass}">${statusText}</span></td>
+          <td class="actions">
+            <button class="btn btn-edit" style="padding:6px 12px;font-size:12px" onclick="editProduct('${p.slot}','${(p.name||'').replace(/'/g,"\\'")}','${(p.price||'').replace(/'/g,"\\'")}',${p.priceETH||0.001},'${p.status}')">Sua</button>
+            ${p.status !== 'available' ? `<button class="btn btn-avail" style="padding:6px 12px;font-size:12px" onclick="toggleSlot('${p.slot}','available')">Mo</button>` : `<button class="btn btn-del" style="padding:6px 12px;font-size:12px" onclick="toggleSlot('${p.slot}','unavailable')">Tat</button>`}
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // ── Show add modal ────────────────────────────────
+    function showAddModal() {
+      document.getElementById('modalTitle').textContent = 'Them San Pham Moi';
+      document.getElementById('editSlot').value = '';
+      document.getElementById('slotNum').value = '';
+      document.getElementById('slotNum').disabled = false;
+      document.getElementById('prodName').value = '';
+      document.getElementById('prodPrice').value = '';
+      document.getElementById('prodPriceETH').value = '0.001';
+      document.getElementById('prodStatus').value = 'available';
+      document.getElementById('productModal').classList.add('active');
+    }
+
+    // ── Edit product ──────────────────────────────────
+    function editProduct(slot, name, price, priceETH, status) {
+      document.getElementById('modalTitle').textContent = 'Sua San Pham';
+      document.getElementById('editSlot').value = slot;
+      document.getElementById('slotNum').value = slot;
+      document.getElementById('slotNum').disabled = true;
+      document.getElementById('prodName').value = name;
+      document.getElementById('prodPrice').value = price;
+      document.getElementById('prodPriceETH').value = priceETH;
+      document.getElementById('prodStatus').value = status;
+      document.getElementById('productModal').classList.add('active');
+    }
+
+    // ── Close modal ───────────────────────────────────
+    function closeModal() {
+      document.getElementById('productModal').classList.remove('active');
+    }
+
+    // ── Save product ──────────────────────────────────
+    async function saveProduct() {
+      const editSlot = document.getElementById('editSlot').value;
+      const slot = editSlot || document.getElementById('slotNum').value;
+      const name = document.getElementById('prodName').value;
+      const price = document.getElementById('prodPrice').value;
+      const priceETH = parseFloat(document.getElementById('prodPriceETH').value) || 0.001;
+      const status = document.getElementById('prodStatus').value;
+
+      if (!slot) return showAlert('Vui long nhap so khe!', 'error');
+      if (!name) return showAlert('Vui long nhap ten san pham!', 'error');
+
+      try {
+        const res = await fetch(`${BASE}/machine/${currentMachine}/slots`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ADMIN_PASS}`
+          },
+          body: JSON.stringify({ slot, name, price, priceETH, status })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`Da luu san pham "${name}" tai khe ${slot}!`, 'success');
+          closeModal();
+          await loadProducts();
+        } else {
+          showAlert(data.message || 'Loi!', 'error');
+        }
+      } catch (e) {
+        showAlert('Loi ket noi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Toggle slot status ────────────────────────────
+    async function toggleSlot(slot, status) {
+      try {
+        const res = await fetch(`${BASE}/machine/${currentMachine}/slots`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ADMIN_PASS}`
+          },
+          body: JSON.stringify({ slot, status })
+        });
+        await loadProducts();
+        showAlert(`Slot ${slot} -> ${status === 'available' ? 'Mo' : 'Tat'}`, 'success');
+      } catch (e) {
+        showAlert('Loi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Alert ─────────────────────────────────────────
+    function showAlert(msg, type) {
+      const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // ── Init ──────────────────────────────────────────
+    loadMachines();
+  </script>
+</body>
+</html>
