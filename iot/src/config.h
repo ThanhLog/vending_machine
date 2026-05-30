@@ -18,6 +18,9 @@
 // ===== MOTOR =====
 #define MOTOR_TIMEOUT 3000 // ms
 
+// ===== PURCHASE TIMEOUT =====
+#define PURCHASE_TIMEOUT 300000 // 5 phut - sau thoi gian nay auto skip luot mua
+
 // ===== SERVO =====
 #define SERVO_OPEN_ANGLE 90
 #define SERVO_CLOSE_ANGLE 0

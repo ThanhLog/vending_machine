@@ -8,52 +8,66 @@
 
 // ==========================================
 // MÀN HÌNH CHỜ CHÍNH (IDLE) - TIẾNG VIỆT
-// Hiển thị: Tên máy, ID, Lượt mua, Thời gian
+// Hiển thị: Tên máy, ID, Lượt mua, Đếm ngược, Thông báo, Thời gian
 // ==========================================
 
 void drawIdle() {
   static unsigned long lastDraw = 0;
   static String lastTime = "";
   static int lastOrderNum = -1;
+  static int lastRemainSec = -1;
+  static String lastNotif = "";
   static bool firstRunIdle = true;
 
   if (uiStateChanged) {
     firstRunIdle = true;
     lastTime = "";
     lastOrderNum = -1;
+    lastRemainSec = -1;
+    lastNotif = "";
     lastDraw = 0;
   }
 
   // Giới hạn tần suất cập nhật
-  if (millis() - lastDraw < 500)
+  if (millis() - lastDraw < 1000)
     return;
   lastDraw = millis();
 
   int orderNum = getCurrentOrderNumber();
   String timeStr = getTimeStr();
+  unsigned long remainMs = getIdleRemaining();
+  int remainSec = remainMs / 1000;
+  int remainMin = remainSec / 60;
+  int remainSecPart = remainSec % 60;
+
+  bool showNotif = hasNotification();
+  String notifMsg = showNotif ? String(getNotificationMsg()) : "";
 
   // 1. VẼ KHUNG CỐ ĐỊNH (Chỉ vẽ 1 lần)
   if (firstRunIdle) {
     tft.fillScreen(COLOR_BG);
 
     // ── Header: Tên máy + ID ─────────────────────
-    tft.fillRoundRect(5, 5, 230, 60, 12, COLOR_CARD);
+    tft.fillRoundRect(5, 5, 230, 50, 12, COLOR_CARD);
 
     // Tên máy
     tft.setTextColor(COLOR_ACCENT);
     tft.setTextSize(2);
-    tft.setCursor(15, 12);
+    tft.setCursor(15, 8);
     tft.print(MACHINE_NAME);
 
     // ID máy
     tft.setTextColor(COLOR_SUBTEXT);
     tft.setTextSize(1);
-    tft.setCursor(15, 38);
+    tft.setCursor(15, 32);
     tft.print("ID: ");
     tft.print(MACHINE_ID);
 
-    // ── Thẻ Lượt mua chính (lớn, nổi bật) ───────
-    tft.fillRoundRect(20, 75, 200, 120, 15, COLOR_CARD);
+    // ── Thanh Thông báo (giữa header và lượt mua) ──
+    tft.fillRoundRect(20, 60, 200, 18, 6, COLOR_BG);
+
+    // ── Thẻ Lượt mua chính ───────────────────────
+    tft.fillRoundRect(20, 82, 200, 95, 15, COLOR_CARD);
 
     // Nhãn "LUOT MUA"
     tft.setTextColor(COLOR_ACCENT);
@@ -61,35 +75,47 @@ void drawIdle() {
     tft.setCursor(65, 90);
     tft.print("LUOT MUA");
 
-    // ── Thẻ Trạng thái ───────────────────────────
-    tft.fillRoundRect(20, 205, 200, 55, 10, COLOR_CARD);
-
-    // Nhãn trạng thái
-    tft.setTextColor(COLOR_SUCCESS);
-    tft.setTextSize(2);
-    tft.setCursor(40, 225);
-    tft.print("SAN SANG");
+    // ── Thẻ đếm ngược ───────────────────────────
+    tft.fillRoundRect(20, 185, 200, 38, 10, COLOR_CARD);
 
     tft.setTextColor(COLOR_SUBTEXT);
     tft.setTextSize(1);
-    tft.setCursor(40, 245);
-    tft.print("Vui long chon san pham");
+    tft.setCursor(35, 198);
+    tft.print("TG:");
+
+    // ── Thẻ Trạng thái ───────────────────────────
+    tft.fillRoundRect(20, 230, 200, 38, 10, COLOR_CARD);
 
     // ── Thẻ Giờ + WiFi ───────────────────────────
-    tft.fillRoundRect(20, 268, 200, 45, 10, COLOR_CARD);
+    tft.fillRoundRect(20, 274, 200, 40, 10, COLOR_CARD);
 
     firstRunIdle = false;
   }
 
-  // 2. CẬP NHẬT SỐ LƯỢT MUA (khi thay đổi)
-  if (orderNum != lastOrderNum) {
-    // Xóa số cũ
-    tft.fillRect(45, 115, 150, 55, COLOR_CARD);
+  // 2. CẬP NHẬT THÔNG BÁO
+  if (notifMsg != lastNotif || firstRunIdle) {
+    tft.fillRect(22, 62, 196, 14, COLOR_BG);
 
-    // Vẽ số thứ tự lớn
+    if (showNotif && notifMsg.length() > 0) {
+      tft.setTextColor(COLOR_PRICE);
+      tft.setTextSize(1);
+      // Can giua thong bao
+      int msgW = notifMsg.length() * 6;
+      int x = 120 - msgW / 2;
+      if (x < 25) x = 25;
+      tft.setCursor(x, 64);
+      tft.print(notifMsg);
+    }
+    lastNotif = notifMsg;
+  }
+
+  // 3. CẬP NHẬT SỐ LƯỢT MUA
+  if (orderNum != lastOrderNum) {
+    tft.fillRect(45, 112, 150, 50, COLOR_CARD);
+
     tft.setTextColor(COLOR_TEXT);
-    tft.setTextSize(6);
-    tft.setCursor(55, 120);
+    tft.setTextSize(5);
+    tft.setCursor(55, 118);
     tft.print("#");
     if (orderNum < 100) tft.print("0");
     if (orderNum < 10) tft.print("0");
@@ -98,31 +124,55 @@ void drawIdle() {
     lastOrderNum = orderNum;
   }
 
-  // 3. CẬP NHẬT THỜI GIAN
-  if (timeStr != lastTime) {
-    // Xóa giờ cũ
-    tft.fillRect(25, 273, 110, 30, COLOR_CARD);
+  // 4. CẬP NHẬT ĐẾM NGƯỢC
+  if (remainSec != lastRemainSec || firstRunIdle) {
+    tft.fillRect(50, 188, 160, 28, COLOR_CARD);
+
+    if (remainSec <= 60) {
+      tft.setTextColor(COLOR_ERROR);
+    } else if (remainSec <= 120) {
+      tft.setTextColor(COLOR_PRICE);
+    } else {
+      tft.setTextColor(COLOR_SUCCESS);
+    }
+    tft.setTextSize(2);
+    tft.setCursor(50, 195);
+    tft.printf("%d:%02d", remainMin, remainSecPart);
+
+    lastRemainSec = remainSec;
+  }
+
+  // 5. Trạng thái
+  {
+    tft.fillRect(30, 238, 180, 22, COLOR_CARD);
+    tft.setTextColor(COLOR_SUCCESS);
+    tft.setTextSize(2);
+    tft.setCursor(50, 240);
+    tft.print("SAN SANG");
+  }
+
+  // 6. CẬP NHẬT THỜI GIAN + WiFi
+  if (timeStr != lastTime || firstRunIdle) {
+    tft.fillRect(25, 279, 100, 28, COLOR_CARD);
 
     tft.setTextColor(COLOR_TEXT);
     tft.setTextSize(2);
-    tft.setCursor(30, 280);
+    tft.setCursor(30, 284);
     tft.print(timeStr);
 
     lastTime = timeStr;
   }
 
-  // 4. WiFi status icon
   {
-    static bool lastWifi = false;
+    static bool lastWifiIcon = false;
     bool wifiOk = (WiFi.status() == WL_CONNECTED);
-    if (wifiOk != lastWifi || firstRunIdle) {
-      // Xóa vùng WiFi cũ
-      tft.fillRect(155, 278, 60, 20, COLOR_CARD);
+    if (wifiOk != lastWifiIcon || firstRunIdle) {
+      tft.fillRect(140, 282, 70, 22, COLOR_CARD);
       tft.setTextColor(wifiOk ? COLOR_SUCCESS : COLOR_ERROR);
       tft.setTextSize(1);
-      tft.setCursor(155, 285);
-      tft.print(wifiOk ? "WiFi OK" : "WiFi LOI");
-      lastWifi = wifiOk;
+      tft.setCursor(148, 288);
+      tft.print(wifiOk ? "WiFi ON" : "WiFi OFF");
+      lastWifiIcon = wifiOk;
     }
   }
 }

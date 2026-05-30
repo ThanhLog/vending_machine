@@ -1,6 +1,7 @@
 #include "tft.h"
 #include <SPI.h>
 #include "./pins.h"
+#include "services/vending/vending.service.h"
 
 
 // ===== COLOR DEFINE =====
@@ -129,5 +130,41 @@ void drawUI() {
 
 void changeState(UIState newState) {
   currentState = newState;
-  startTime = millis(); 
+  startTime = millis();
+  // Reset idle timer khi vao trang thai IDLE
+  if (newState == IDLE) {
+    resetIdleTimer();
   }
+}
+
+// ===== NOTIFICATION =====
+static char notificationMsg[100] = "";
+static bool hasNotification = false;
+static unsigned long notificationTime = 0;
+#define NOTIFICATION_DURATION 5000 // 5 giay
+
+void setNotification(const char* msg) {
+  strncpy(notificationMsg, msg, 99);
+  notificationMsg[99] = '\0';
+  hasNotification = true;
+  notificationTime = millis();
+  Serial.printf("[TFT] Notification: %s\n", msg);
+}
+
+void clearNotification() {
+  hasNotification = false;
+  notificationMsg[0] = '\0';
+}
+
+bool hasNotification() {
+  // Tu dong xoa notification sau 5 giay
+  if (hasNotification && millis() - notificationTime > NOTIFICATION_DURATION) {
+    hasNotification = false;
+    notificationMsg[0] = '\0';
+  }
+  return hasNotification;
+}
+
+const char* getNotificationMsg() {
+  return notificationMsg;
+}

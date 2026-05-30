@@ -16,3 +16,6 @@ const char *getVendingStatusText();
 int getCurrentOrderNumber();
 bool isProductDetected();
 void resetOrderNumber();
+void resetIdleTimer();
+void checkPurchaseTimeout();
+unsigned long getIdleRemaining();

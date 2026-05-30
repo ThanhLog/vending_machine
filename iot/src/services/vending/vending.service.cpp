@@ -13,6 +13,7 @@ static int currentSlot = 0;
 static unsigned long processTime = 0;
 static unsigned long detectedAt = 0;
 static VendingStatus vendingStatus = VENDING_READY;
+static unsigned long idleStartTime = 0;
 
 int selected = 0;
 int currentOrderNum = 1;
@@ -20,6 +21,7 @@ int currentOrderNum = 1;
 void initVending() {
   pinMode(IR1, INPUT_PULLUP);
   vendingStatus = VENDING_READY;
+  idleStartTime = millis();
 }
 
 bool isProductDetected() {
@@ -30,9 +32,16 @@ static void finishSuccess() {
   stopMotor(currentSlot);
   isProcessing = false;
   detectedAt = 0;
+  int completedNum = currentOrderNum;
   currentOrderNum++;
   vendingStatus = VENDING_SUCCESS;
+  idleStartTime = millis(); // reset idle timer sau khi mua xong
   changeState(SUCCESS);
+
+  // Hien thong bao
+  char msg[50];
+  snprintf(msg, sizeof(msg), "Mua thanh cong! #%d", completedNum);
+  setNotification(msg);
 
   // Report to backend
   reportSuccess();
@@ -43,7 +52,11 @@ static void finishError() {
   isProcessing = false;
   detectedAt = 0;
   vendingStatus = VENDING_ERROR;
+  idleStartTime = millis(); // reset idle timer sau khi loi
   changeState(ERROR_STATE);
+
+  // Hien thong bao
+  setNotification("Loi! Vui long thu lai");
 
   // Report to backend
   reportError("Khong phat hien vat pham roi - Motor timeout");
@@ -146,5 +159,36 @@ int getCurrentOrderNumber() {
 
 void resetOrderNumber() {
   currentOrderNum = 1;
+  idleStartTime = millis();
   Serial.println("[Vending] Order number reset to 1");
+}
+
+void resetIdleTimer() {
+  idleStartTime = millis();
+}
+
+void checkPurchaseTimeout() {
+  // Chi kiem tra timeout khi may dang o trang thai IDLE va ko dang xu ly
+  if (isProcessing) return;
+  if (currentState != IDLE) return;
+
+  unsigned long elapsed = millis() - idleStartTime;
+  if (elapsed >= PURCHASE_TIMEOUT) {
+    int oldNum = currentOrderNum;
+    currentOrderNum++;
+    idleStartTime = millis();
+    Serial.printf("[Vending] Purchase timeout! Skipping to #%d\n", currentOrderNum);
+
+    // Hien thong bao tren man hinh
+    char msg[60];
+    snprintf(msg, sizeof(msg), "Het gio! Luot #%d -> #%d", oldNum, currentOrderNum);
+    setNotification(msg);
+  }
+}
+
+unsigned long getIdleRemaining() {
+  if (isProcessing || currentState != IDLE) return 0;
+  unsigned long elapsed = millis() - idleStartTime;
+  if (elapsed >= PURCHASE_TIMEOUT) return 0;
+  return PURCHASE_TIMEOUT - elapsed;
 }

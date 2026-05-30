@@ -19,6 +19,12 @@ enum UIState { WIFI_SETUP, IDLE, SELECT, PROCESSING, SUCCESS, ERROR_STATE };
 extern UIState currentState;
 extern bool uiStateChanged;
 
+// ===== NOTIFICATION =====
+void setNotification(const char* msg);
+void clearNotification();
+bool hasNotification();
+const char* getNotificationMsg();
+
 // ===== CORE =====
 void initTFT();
 void drawUI();

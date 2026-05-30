@@ -1,6 +1,7 @@
 #include "backend.service.h"
 #include "config.h"
 #include "services/vending/vending.service.h"
+#include "tft/tft.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
@@ -19,6 +20,19 @@ bool cmdReady = false;
 String backendUrl = BACKEND_URL;
 String machineId = MACHINE_ID;
 
+// Convert slot string ("a1", "a3", "1", "3") to int (1-4)
+int parseSlot(const JsonObjectConst &cmd) {
+  // Try integer first
+  if (cmd["slot"].is<int>()) {
+    return cmd["slot"].as<int>();
+  }
+  // Try string: "a1"→1, "a2"→2, "a3"→3, "b1"→4, "1"→1, etc.
+  const char *slotStr = cmd["slot"] | "";
+  if (slotStr[0] == 'a' || slotStr[0] == 'A') return atoi(slotStr + 1);      // a1→1, a2→2, a3→3
+  if (slotStr[0] == 'b' || slotStr[0] == 'B') return atoi(slotStr + 1) + 3;  // b1→4 (offset for row B)
+  return atoi(slotStr);  // Plain number "1"→1
+}
+
 void parseCommand(const JsonDocument &doc) {
   if (doc["success"].as<bool>() == false)
     return;
@@ -29,7 +43,7 @@ void parseCommand(const JsonDocument &doc) {
 
   JsonObjectConst cmd = cmds[0];
   pendingCmdId = cmd["id"].as<String>();
-  pendingSlot = cmd["slot"].as<int>();
+  pendingSlot = parseSlot(cmd);
   pendingOrderNum = cmd["orderNumber"] ? cmd["orderNumber"].as<int>() : 0;
 
   const char *product = cmd["productName"] | "Unknown";
@@ -41,6 +55,11 @@ void parseCommand(const JsonDocument &doc) {
   Serial.print(pendingSlot);
   Serial.print(" product=");
   Serial.println(product);
+
+  // Hien thong bao tren man hinh
+  char msg[80];
+  snprintf(msg, sizeof(msg), "Don #%d: %s", pendingOrderNum, product);
+  setNotification(msg);
 }
 
 void checkPendingCommands() {
