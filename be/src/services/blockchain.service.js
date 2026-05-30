@@ -40,19 +40,24 @@ async function verifyPayment(txHash, expectedAmountETH = PRODUCT_PRICE_ETH) {
       };
     }
 
-    // Check confirmation
-    const receipt = await provider.getTransactionReceipt(txHash);
+    // Check confirmation - poll up to 60s for receipt
+    let receipt = await provider.getTransactionReceipt(txHash);
     if (!receipt) {
-      return { valid: false, reason: "Transaction not yet confirmed. Wait for at least 1 block." };
+      logger.info("Waiting for tx to be mined...");
+      // Poll every 3s, up to 60s
+      for (let i = 0; i < 20; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        receipt = await provider.getTransactionReceipt(txHash);
+        if (receipt) break;
+        logger.info("Still waiting for tx confirmation...");
+      }
+      if (!receipt) {
+        return { valid: false, reason: "Transaction not confirmed after 60s. Please try again." };
+      }
     }
 
     if (receipt.status === 0) {
       return { valid: false, reason: "Transaction reverted on chain" };
-    }
-
-    const confirmations = await receipt.confirmations();
-    if (confirmations < 1) {
-      return { valid: false, reason: "Transaction not confirmed. Wait for at least 1 block." };
     }
 
     logger.info("Payment verified:", txHash, "from:", tx.from);
