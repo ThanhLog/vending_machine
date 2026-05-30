@@ -51,6 +51,13 @@ async function connectToMachine(machineId, walletAddress) {
 
   const entry = await firebaseService.joinQueue(machineId, walletAddress);
 
+  // Nếu chưa có ai đang được phục vụ, tự động serve người đầu tiên
+  const currentServing = await firebaseService.getCurrentServing(machineId);
+  if (!currentServing) {
+    await firebaseService.serveNext(machineId);
+    logger.info("Auto-served first user in queue:", walletAddress);
+  }
+
   // Get position
   const position = await firebaseService.getQueuePosition(machineId, walletAddress);
 
@@ -59,7 +66,7 @@ async function connectToMachine(machineId, walletAddress) {
     machineId,
     machineName: machine.name,
     position: position ? position.position : entry.position,
-    status: entry.status,
+    status: position ? position.status : entry.status,
     peopleAhead: position ? position.peopleAhead : entry.position - 1,
     estimatedWaitMin: position ? position.peopleAhead * 1.5 : 0,
     joinedAt: entry.joinedAt,
