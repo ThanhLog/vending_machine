@@ -127,7 +127,7 @@ void loop() {
   processBackendCommands();   // Poll API + Heartbeat
   updateVending();            // IR sensor + motor timeout
   dispatchCommand();          // Dispatch pending cmd to vending
-  checkPurchaseTimeout();     // Timeout 5 phut -> skip luot mua
+  // checkPurchaseTimeout();  // DISABLED - auto skip gây lỗi lượt mua
   updateBuzzer();             // Melody playback
   drawUI();                   // TFT display
 
