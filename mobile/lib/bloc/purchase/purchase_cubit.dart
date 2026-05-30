@@ -20,7 +20,10 @@ class PurchaseCubit extends Cubit<PurchaseState> {
 
     try {
       final data = await _api.getMachineSlots(machineId);
-      final slots = data.map((json) => Product.fromJson(json)).toList();
+      final slots = data
+          .map((json) => Product.fromJson(json))
+          .where((p) => p.status == 'available')
+          .toList();
       emit(state.copyWith(isLoading: false, slots: slots));
     } catch (e) {
       emit(state.copyWith(
