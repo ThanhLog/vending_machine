@@ -21,13 +21,15 @@ function checkAuth(req, res, next) {
 }
 
 // ── Serve admin page ───────────────────────────────
-router.get("/", (req, res) => {
+function serveAdmin(req, res) {
   const token = req.query.token;
   if (token !== ADMIN_PASSWORD) {
     return res.send(loginPage());
   }
   return res.sendFile(path.join(__dirname, "..", "public", "admin.html"));
-});
+}
+router.get("/", serveAdmin);
+router.get("", serveAdmin);
 
 // ── API: Get all machines (for dropdown) ────────────
 router.get("/machines", checkAuth, async (req, res) => {
