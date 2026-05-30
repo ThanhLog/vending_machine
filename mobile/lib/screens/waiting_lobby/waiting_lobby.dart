@@ -172,29 +172,33 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              context.read<QueueCubit>().reset();
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8), size: 28),
-                          ),
-                          Flexible(
-                            child: Text(
-                              widget.machineName.toUpperCase(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF94A3B8),
-                                letterSpacing: 1.2,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32),
+                              onPressed: () {
+                                context.read<QueueCubit>().reset();
+                                Navigator.pop(context);
+                              },
+                              icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8), size: 24),
+                            ),
+                            Expanded(
+                              child: Text(
+                                widget.machineName.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF94A3B8),
+                                  letterSpacing: 1.2,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       // Status tag
                       GestureDetector(
