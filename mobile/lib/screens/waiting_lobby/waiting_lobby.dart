@@ -46,18 +46,24 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
   }
 
   void _joinQueue() async {
-    // Verify WiFi connection to ESP32
-    final isConnected = await WifiService.isConnectedToEsp32();
+    // Join queue via cloud API - phone uses its own internet (4G/WiFi)
+    // ESP32 proximity is verified via GPS, not WiFi connection
+    if (!mounted) return;
 
-    if (!isConnected && mounted) {
-      _showWifiDialog();
+    // Check login status before joining queue
+    final privateKey = widget.privateKey;
+    if (privateKey == null || privateKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login first to join the queue'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    if (!mounted) return;
-
     final queueCubit = context.read<QueueCubit>();
-    queueCubit.joinQueue(widget.machineId, widget.privateKey ?? '');
+    queueCubit.joinQueue(widget.machineId, privateKey);
     setState(() => _joined = true);
   }
 

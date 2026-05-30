@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/vending_machine/vending_machine_cubit.dart';
 import '../../bloc/vending_machine/vending_machine_state.dart';
 import '../../models/vending_machine.dart';
+import '../login_screen.dart';
 import '../waiting_lobby/waiting_lobby.dart';
 
 class AllDevicesScreen extends StatefulWidget {
@@ -234,6 +235,35 @@ class _AllDeviceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: machine.isOnline
             ? () {
+                final isLoggedIn = privateKey != null && privateKey!.isNotEmpty;
+                if (!isLoggedIn) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Login Required'),
+                      content: const Text(
+                        'You need to login first to connect to vending machines.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text('Login'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(

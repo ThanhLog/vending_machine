@@ -10,6 +10,7 @@ import 'bloc/home_cubit/home_cubit.dart';
 import 'bloc/vending_machine/vending_machine_cubit.dart';
 import 'bloc/queue/queue_cubit.dart';
 import 'bloc/purchase/purchase_cubit.dart';
+import 'screens/login_screen.dart';
 import 'screens/home/home_screen.dart';
 
 Future<void> main() async {
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: const HomeScreen(privateKey: null),
+        home: const LoginScreen(),
       ),
     );
   }
