@@ -89,8 +89,8 @@ void updateCaptiveDns() {
 
 void loadNetworkConfig() {
   prefs.begin("network", true);
-  staSsid = prefs.getString("ssid", "");
-  staPassword = prefs.getString("pass", "");
+  staSsid = prefs.getString("ssid", "Nha Tro Anh Cuong");
+  staPassword = prefs.getString("pass", "88888888");
   prefs.end();
 }
 
