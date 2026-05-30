@@ -15,3 +15,4 @@ VendingStatus getVendingStatus();
 const char *getVendingStatusText();
 int getCurrentOrderNumber();
 bool isProductDetected();
+void resetOrderNumber();

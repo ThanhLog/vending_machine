@@ -2,160 +2,127 @@
 #include "services/time/time.service.h"
 #include "services/vending/vending.service.h"
 #include "services/weather/weather.service.h"
+#include "config.h"
 #include "tft.h"
-#include <math.h>
-
-
-// ==========================================
-// CÁC HÀM VẼ ICON (PRIVATE)
-// ==========================================
-
-static void drawSunIcon(int16_t x, int16_t y) {
-  tft.fillCircle(x, y, 8, COLOR_UV);
-  for (int i = 0; i < 360; i += 45) {
-    float rad = i * 0.01745;
-    tft.drawLine(x + cos(rad) * 11, y + sin(rad) * 11, x + cos(rad) * 16,
-                 y + sin(rad) * 16, COLOR_UV);
-  }
-}
-
-static void drawDropIcon(int16_t x, int16_t y) {
-  tft.fillCircle(x, y, 5, COLOR_HUMID);
-  tft.fillTriangle(x - 5, y, x + 5, y, x, y - 9, COLOR_HUMID);
-}
+#include <WiFi.h>
 
 // ==========================================
-// MÀN HÌNH CHỜ CHÍNH (IDLE)
+// MÀN HÌNH CHỜ CHÍNH (IDLE) - TIẾNG VIỆT
+// Hiển thị: Tên máy, ID, Lượt mua, Thời gian
 // ==========================================
 
 void drawIdle() {
   static unsigned long lastDraw = 0;
   static String lastTime = "";
+  static int lastOrderNum = -1;
   static bool firstRunIdle = true;
 
   if (uiStateChanged) {
     firstRunIdle = true;
     lastTime = "";
+    lastOrderNum = -1;
     lastDraw = 0;
   }
 
-  // Giới hạn tần suất cập nhật để tiết kiệm năng lượng/CPU
+  // Giới hạn tần suất cập nhật
   if (millis() - lastDraw < 500)
     return;
   lastDraw = millis();
 
-  WeatherData w = getWeather();
+  int orderNum = getCurrentOrderNumber();
   String timeStr = getTimeStr();
 
-  // 1. VẼ KHUNG CỐ ĐỊNH (Chỉ vẽ 1 lần khi khởi tạo)
+  // 1. VẼ KHUNG CỐ ĐỊNH (Chỉ vẽ 1 lần)
   if (firstRunIdle) {
     tft.fillScreen(COLOR_BG);
 
-    // Thẻ Thời gian (Top)
-    tft.fillRoundRect(5, 5, 230, 75, 12, COLOR_CARD);
+    // ── Header: Tên máy + ID ─────────────────────
+    tft.fillRoundRect(5, 5, 230, 60, 12, COLOR_CARD);
 
-    // Thẻ Thời tiết chính (Middle)
-    tft.fillRoundRect(5, 85, 230, 115, 12, COLOR_CARD);
+    // Tên máy
+    tft.setTextColor(COLOR_ACCENT);
+    tft.setTextSize(2);
+    tft.setCursor(15, 12);
+    tft.print(MACHINE_NAME);
 
-    // Lưới các thẻ chỉ số phụ (Bottom)
-    tft.fillRoundRect(5, 205, 112, 55, 8, COLOR_CARD);   // Thẻ Độ ẩm
-    tft.fillRoundRect(123, 205, 112, 55, 8, COLOR_CARD); // Thẻ UV
-    tft.fillRoundRect(5, 265, 230, 50, 8, COLOR_CARD);   // Thẻ AQI
+    // ID máy
+    tft.setTextColor(COLOR_SUBTEXT);
+    tft.setTextSize(1);
+    tft.setCursor(15, 38);
+    tft.print("ID: ");
+    tft.print(MACHINE_ID);
+
+    // ── Thẻ Lượt mua chính (lớn, nổi bật) ───────
+    tft.fillRoundRect(20, 75, 200, 120, 15, COLOR_CARD);
+
+    // Nhãn "LUOT MUA"
+    tft.setTextColor(COLOR_ACCENT);
+    tft.setTextSize(2);
+    tft.setCursor(65, 90);
+    tft.print("LUOT MUA");
+
+    // ── Thẻ Trạng thái ───────────────────────────
+    tft.fillRoundRect(20, 205, 200, 55, 10, COLOR_CARD);
+
+    // Nhãn trạng thái
+    tft.setTextColor(COLOR_SUCCESS);
+    tft.setTextSize(2);
+    tft.setCursor(40, 225);
+    tft.print("SAN SANG");
+
+    tft.setTextColor(COLOR_SUBTEXT);
+    tft.setTextSize(1);
+    tft.setCursor(40, 245);
+    tft.print("Vui long chon san pham");
+
+    // ── Thẻ Giờ + WiFi ───────────────────────────
+    tft.fillRoundRect(20, 268, 200, 45, 10, COLOR_CARD);
 
     firstRunIdle = false;
   }
 
-  // 2. CẬP NHẬT THỜI GIAN (HEADER)
+  // 2. CẬP NHẬT SỐ LƯỢT MUA (khi thay đổi)
+  if (orderNum != lastOrderNum) {
+    // Xóa số cũ
+    tft.fillRect(45, 115, 150, 55, COLOR_CARD);
+
+    // Vẽ số thứ tự lớn
+    tft.setTextColor(COLOR_TEXT);
+    tft.setTextSize(6);
+    tft.setCursor(55, 120);
+    tft.print("#");
+    if (orderNum < 100) tft.print("0");
+    if (orderNum < 10) tft.print("0");
+    tft.print(orderNum);
+
+    lastOrderNum = orderNum;
+  }
+
+  // 3. CẬP NHẬT THỜI GIAN
   if (timeStr != lastTime) {
-    tft.setTextColor(COLOR_TEXT, COLOR_CARD); // Vẽ đè màu nền để chống nháy
-    tft.setTextSize(4);
-    // Căn giữa tương đối cho format HH:MM
-    tft.setCursor(15, 25);
+    // Xóa giờ cũ
+    tft.fillRect(25, 273, 110, 30, COLOR_CARD);
+
+    tft.setTextColor(COLOR_TEXT);
+    tft.setTextSize(2);
+    tft.setCursor(30, 280);
     tft.print(timeStr);
+
     lastTime = timeStr;
   }
 
-  // 2b. HIEN THI SO THU TU TIEP THEO
+  // 4. WiFi status icon
   {
-    int nextNum = getCurrentOrderNumber();
-    tft.setTextColor(COLOR_ACCENT, COLOR_CARD);
-    tft.setTextSize(2);
-    tft.setCursor(155, 15);
-    tft.print("NEXT");
-    tft.setCursor(155, 35);
-    tft.print("#");
-    if (nextNum < 100) tft.print("0");
-    if (nextNum < 10) tft.print("0");
-    tft.print(nextNum);
+    static bool lastWifi = false;
+    bool wifiOk = (WiFi.status() == WL_CONNECTED);
+    if (wifiOk != lastWifi || firstRunIdle) {
+      // Xóa vùng WiFi cũ
+      tft.fillRect(155, 278, 60, 20, COLOR_CARD);
+      tft.setTextColor(wifiOk ? COLOR_SUCCESS : COLOR_ERROR);
+      tft.setTextSize(1);
+      tft.setCursor(155, 285);
+      tft.print(wifiOk ? "WiFi OK" : "WiFi LOI");
+      lastWifi = wifiOk;
+    }
   }
-
-  // 3. CẬP NHẬT THỜI TIẾT CHÍNH
-  if (w.isValid) {
-    drawSunIcon(195, 120);
-
-    // Trạng thái
-    tft.setTextColor(COLOR_SUBTEXT, COLOR_CARD);
-    tft.setTextSize(2);
-    tft.setCursor(20, 100);
-    tft.print(w.status);
-
-    // Nhiệt độ lớn
-    tft.setTextColor(COLOR_TEMP, COLOR_CARD);
-    tft.setTextSize(7);
-    tft.setCursor(20, 125);
-    tft.print(w.temp);
-
-    // Đơn vị độ C
-    tft.setTextSize(3);
-    tft.print("o");
-    tft.setTextSize(4);
-    tft.print("C");
-  } else {
-    tft.setTextColor(COLOR_SUBTEXT, COLOR_CARD);
-    tft.setTextSize(2);
-    tft.setCursor(80, 135);
-    tft.print("No Data");
-  }
-
-  // 4. CHỈ SỐ PHỤ (HUMIDITY & UV)
-  // Độ ẩm
-  drawDropIcon(20, 220);
-  tft.setTextColor(COLOR_SUBTEXT, COLOR_CARD);
-  tft.setTextSize(1);
-  tft.setCursor(35, 215);
-  tft.print("HUMIDITY");
-
-  tft.setTextColor(COLOR_HUMID, COLOR_CARD);
-  tft.setTextSize(3);
-  tft.setCursor(20, 230);
-  tft.print(w.humidity);
-  tft.setTextSize(1);
-  tft.print(" %");
-
-  // UV Index
-  tft.setTextColor(COLOR_SUBTEXT, COLOR_CARD);
-  tft.setTextSize(1);
-  tft.setCursor(138, 215);
-  tft.print("UV INDEX");
-
-  tft.setTextColor(COLOR_UV, COLOR_CARD);
-  tft.setTextSize(3);
-  tft.setCursor(138, 230);
-  tft.print(w.uv);
-
-  // 5. CHỈ SỐ AQI (BOTTOM)
-  tft.setTextColor(COLOR_SUBTEXT, COLOR_CARD);
-  tft.setTextSize(1);
-  tft.setCursor(20, 275);
-  tft.print("AIR QUALITY (AQI)");
-
-  uint16_t aqiColor = (w.aqi < 50) ? COLOR_AQI_G : COLOR_AQI_Y;
-  tft.setTextColor(aqiColor, COLOR_CARD);
-  tft.setTextSize(3);
-  tft.setCursor(20, 288);
-  tft.print(w.aqi);
-
-  tft.setTextSize(2);
-  tft.setCursor(140, 290);
-  tft.print(w.aqi < 50 ? "GOOD" : "MODERATE");
 }

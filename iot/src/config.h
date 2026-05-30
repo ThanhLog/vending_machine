@@ -11,6 +11,7 @@
 // ===== BACKEND =====
 #define BACKEND_URL "https://apivendingmachine.thiephaoy.shop"
 #define MACHINE_ID "machine-hanoi-05"
+#define MACHINE_NAME "May Ban Hang Hanoi-05"
 #define POLL_INTERVAL 2000    // ms
 #define HEARTBEAT_INTERVAL 30000 // ms
 

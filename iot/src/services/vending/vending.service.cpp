@@ -80,7 +80,10 @@ bool executeRemoteCommand(int slot, int orderNumber, const char *commandId) {
 
   currentSlot = slot;
   selected = slot - 1;
-  currentOrderNum = orderNumber;
+  // Nếu backend gửi orderNumber hợp lệ (> 0) thì dùng, ngược lại giữ local counter
+  if (orderNumber > 0) {
+    currentOrderNum = orderNumber;
+  }
   isProcessing = true;
   detectedAt = 0;
   vendingStatus = VENDING_PROCESSING;
@@ -88,7 +91,7 @@ bool executeRemoteCommand(int slot, int orderNumber, const char *commandId) {
   Serial.print("[Vending] Remote command: slot=");
   Serial.print(slot);
   Serial.print(" order=");
-  Serial.println(orderNumber);
+  Serial.println(currentOrderNum);
 
   changeState(PROCESSING);
   processTime = millis();
@@ -139,4 +142,9 @@ const char *getVendingStatusText() {
 
 int getCurrentOrderNumber() {
   return currentOrderNum;
+}
+
+void resetOrderNumber() {
+  currentOrderNum = 1;
+  Serial.println("[Vending] Order number reset to 1");
 }
