@@ -18,11 +18,6 @@
 #include "services/time/time.service.h"
 #include "services/weather/weather.service.h"
 
-// ── IR Test mode variables ──────────────────────────
-bool irTestMode = false;
-unsigned long irTestStart = 0;
-unsigned long lastIrPrint = 0;
-
 // ── Servo door (GPIO 15, LEDC Channel 1) ────────────
 #define SERVO_CHANNEL 1
 #define SERVO_FREQ 50
@@ -122,83 +117,10 @@ void loop() {
       Serial.printf("[Serial] Current order: #%d\n", getCurrentOrderNumber());
       Serial.printf("[Serial] Status: %s\n", getVendingStatusText());
       Serial.printf("[Serial] WiFi: %s\n", isWiFiConnected() ? "Connected" : "Disconnected");
-    } else if (cmd == "irtest") {
-      Serial.println("\n========== IR SENSOR TEST ==========");
-      Serial.println("Doc lien tuc 5 cam bien IR trong 30 giay");
-      Serial.println("Gui 'irstop' de dung som");
-      Serial.println("Che / khong che cam bien de kiem tra");
-      Serial.println("GPIO: IR1=32 IR2=33 IR3=34 IR4=35 IR5=39");
-      Serial.println("INPUT_PULLUP → HIGH=clear, LOW=blocked");
-      Serial.println("=====================================\n");
-      irTestMode = true;
-      irTestStart = millis();
-    } else if (cmd == "irstop") {
-      irTestMode = false;
-      Serial.println("[IR Test] Stopped");
-      changeState(IDLE);
     } else {
       Serial.printf("[Serial] Unknown command: %s\n", cmd.c_str());
-      Serial.println("[Serial] Available: reset, resetall, status, irtest, irstop");
+      Serial.println("[Serial] Available: reset, resetall, status");
     }
-  }
-
-  // ── IR TEST MODE ─────────────────────────────────
-  if (irTestMode) {
-    // Auto-stop after 60 seconds
-    if (millis() - irTestStart > 60000) {
-      irTestMode = false;
-      Serial.println("\n[IR Test] Auto-stopped after 60s");
-      changeState(IDLE);
-    }
-    // Print every 500ms
-    else if (millis() - lastIrPrint > 500) {
-      lastIrPrint = millis();
-      int ir1 = digitalRead(IR1);
-      int ir2 = digitalRead(IR2);
-      int ir3 = digitalRead(IR3);
-      int ir4 = digitalRead(IR4);
-      int ir5 = digitalRead(IR5);
-
-      bool b1 = (ir1 == IR_TRIGGER);
-      bool b2 = (ir2 == IR_TRIGGER);
-      bool b3 = (ir3 == IR_TRIGGER);
-      bool b4 = (ir4 == IR_TRIGGER);
-      bool b5 = (ir5 == IR_TRIGGER);
-      Serial.println("─── IR Sensors ───");
-      Serial.printf("  IR1(GPIO32): %s %s\n", ir1 == LOW ? "LOW " : "HIGH", b1 ? "🔴 BLOCKED" : "🟢 CLEAR");
-      Serial.printf("  IR2(GPIO33): %s %s\n", ir2 == LOW ? "LOW " : "HIGH", b2 ? "🔴 BLOCKED" : "🟢 CLEAR");
-      Serial.printf("  IR3(GPIO34): %s %s\n", ir3 == LOW ? "LOW " : "HIGH", b3 ? "🔴 BLOCKED" : "🟢 CLEAR");
-      Serial.printf("  IR4(GPIO35): %s %s\n", ir4 == LOW ? "LOW " : "HIGH", b4 ? "🔴 BLOCKED" : "🟢 CLEAR");
-      Serial.printf("  IR5(GPIO39): %s %s\n", ir5 == LOW ? "LOW " : "HIGH", b5 ? "🔴 BLOCKED" : "🟢 CLEAR");
-
-      // Draw on TFT
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setTextSize(2);
-      tft.setCursor(10, 10);
-      tft.print("IR TEST MODE");
-
-      const int irPins[5] = {IR1, IR2, IR3, IR4, IR5};
-      const int irGpios[5] = {32, 33, 34, 35, 39};
-      for (int i = 0; i < 5; i++) {
-        int y = 50 + i * 45;
-        int val = digitalRead(irPins[i]);
-        bool blocked = (val == IR_TRIGGER);
-
-        tft.fillRoundRect(10, y, 220, 38, 6,
-                          blocked ? tft.color565(80, 20, 20) : tft.color565(20, 60, 20));
-        tft.setTextSize(2);
-        tft.setTextColor(blocked ? ST77XX_RED : ST77XX_GREEN);
-        tft.setCursor(20, y + 8);
-        tft.printf("IR%d GPIO%d", i + 1, irGpios[i]);
-
-        tft.setTextColor(ST77XX_WHITE);
-        tft.setCursor(170, y + 8);
-        tft.print(blocked ? "CHAN" : "OK");
-      }
-    }
-    delay(50);
-    return; // Skip normal operations during IR test
   }
 
   updateNetwork();            // WebServer + Captive DNS

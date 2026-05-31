@@ -203,9 +203,7 @@ void handleStatus() {
                                ? WiFi.localIP().toString()
                                : "") +
                     "\",\"vendingStatus\":\"" + getVendingStatusText() +
-                    "\",\"productDetected\":" +
-                    String(isProductDetected() ? "true" : "false") +
-                    ",\"orderNumber\":" + String(getCurrentOrderNumber()) +
+                    "\",\"orderNumber\":" + String(getCurrentOrderNumber()) +
                     ",\"message\":\"" + jsonEscape(getVendingMessage()) +
                     "\"}");
 }
@@ -246,7 +244,7 @@ void handleBuy() {
     return;
   }
 
-  if (!selectProduct(slot)) {
+  if (!executeRemoteCommand(slot, 0, "local")) {
     sendJson(409, "{\"ok\":false,\"message\":\"May dang xu ly don khac\"}");
     return;
   }

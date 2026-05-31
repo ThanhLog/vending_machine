@@ -16,7 +16,7 @@
 #define HEARTBEAT_INTERVAL 30000 // ms
 
 // ===== MOTOR =====
-#define MOTOR_TIMEOUT 8000 // ms (tang thoi gian cho san pham roi)
+#define MOTOR_TIMEOUT 3000 // ms (3 giay - khong dung IR)
 
 // ===== PURCHASE TIMEOUT =====
 #define PURCHASE_TIMEOUT 180000 // 3 phut - BE quan ly countdown, ESP chi fallback
@@ -25,10 +25,6 @@
 #define SERVO_OPEN_ANGLE 90
 #define SERVO_CLOSE_ANGLE 0
 #define SERVO_DELAY 3000 // ms
-
-// ===== SENSOR =====
-#define IR_TRIGGER HIGH  // Dao logic: HIGH = vat can (IR1), LOW = clear
-#define IR_DEBOUNCE_TIME 60 // ms
 
 // ===== BUZZER =====
 #define BUZZER_TIME 200
