@@ -6,6 +6,7 @@ import 'package:web3auth_flutter/input.dart';
 import 'package:web3auth_flutter/web3auth_flutter.dart';
 
 import 'bloc/auth/auth_cubit.dart';
+import 'bloc/auth/auth_state.dart';
 import 'bloc/home_cubit/home_cubit.dart';
 import 'bloc/vending_machine/vending_machine_cubit.dart';
 import 'bloc/queue/queue_cubit.dart';
@@ -43,7 +44,19 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: const LoginScreen(),
+        home: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, state) {
+            if (state.isLoggedIn &&
+                state.privateKey != null &&
+                state.walletAddress != null) {
+              return HomeScreen(
+                privateKey: state.privateKey!,
+                walletAddress: state.walletAddress!,
+              );
+            }
+            return const LoginScreen();
+          },
+        ),
       ),
     );
   }
