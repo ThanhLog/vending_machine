@@ -51,9 +51,9 @@ async function connectToMachine(machineId, walletAddress) {
 
   const entry = await firebaseService.joinQueue(machineId, walletAddress);
 
-  // Nếu chưa có ai đang được phục vụ, tự động serve người đầu tiên
+  // Chỉ auto-serve nếu queue chỉ có 1 người (tránh race condition)
   const currentServing = await firebaseService.getCurrentServing(machineId);
-  if (!currentServing) {
+  if (!currentServing && entry.position <= 1) {
     await firebaseService.serveNext(machineId);
     logger.info("Auto-served first user in queue:", walletAddress);
   }
