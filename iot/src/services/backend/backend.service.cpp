@@ -47,7 +47,11 @@ void parseCommand(const JsonDocument &doc) {
 
   // ── Always sync order number from BE ──────────────
   if (data["orderNumber"].is<int>()) {
-    beOrderNumber = data["orderNumber"].as<int>();
+    int newOrder = data["orderNumber"].as<int>();
+    if (newOrder != beOrderNumber) {
+      beOrderNumber = newOrder;
+      Serial.printf("[Backend] BE orderNumber updated: #%d\n", beOrderNumber);
+    }
   }
 
   // ── Parse commands array ──────────────────────────

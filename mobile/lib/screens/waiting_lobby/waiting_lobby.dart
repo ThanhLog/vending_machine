@@ -285,9 +285,10 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
                   else if (!isMyTurn)
                     // Waiting in queue
                     Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'YOUR QUEUE NUMBER',
+                          'SO THU TU CUA BAN',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -295,7 +296,8 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
                             letterSpacing: 3,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
+                        // Large queue number
                         Text(
                           queueNumber.toString().padLeft(2, '0'),
                           style: TextStyle(
@@ -303,6 +305,22 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Phia truoc: ${state.peopleAhead} nguoi',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '~${state.estimatedWaitMin.toStringAsFixed(1)} phut cho',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF64748B),
                           ),
                         ),
                         const SizedBox(height: 32),

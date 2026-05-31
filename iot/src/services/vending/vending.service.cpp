@@ -105,8 +105,11 @@ void checkPurchaseTimeout() {
 
 void syncOrderNumberFromBe() {
   int beOrder = getBeOrderNumber();
-  if (beOrder > 0) {
+  static int lastSynced = 0;
+  if (beOrder > 0 && beOrder != lastSynced) {
     currentOrderNum = beOrder;
+    lastSynced = beOrder;
+    Serial.printf("[Sync] OrderNumber from BE: #%d\n", beOrder);
   }
 }
 
