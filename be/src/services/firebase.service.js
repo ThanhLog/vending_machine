@@ -153,15 +153,27 @@ async function getQueuePosition(machineId, walletAddress) {
     .where("status", "==", "waiting")
     .get();
 
-  const aheadCount = waitingSnapshot.docs.filter((d) =>
+  // Count waiting people ahead
+  const aheadWaiting = waitingSnapshot.docs.filter((d) =>
     d.data().joinedAt < userData.joinedAt
   ).length;
+
+  // Check if someone is currently being served
+  let servingAhead = 0;
+  if (userData.status === "waiting") {
+    const currentServing = await getCurrentServing(machineId);
+    if (currentServing) {
+      servingAhead = 1; // The person being served is ahead of all waiting
+    }
+  }
+
+  const totalAhead = aheadWaiting + servingAhead;
 
   return {
     queueId: userDoc.id,
     ...userData,
-    position: aheadCount + 1,
-    peopleAhead: aheadCount,
+    position: totalAhead + 1,
+    peopleAhead: totalAhead,
   };
 }
 
