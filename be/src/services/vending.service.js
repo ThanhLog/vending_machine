@@ -51,24 +51,27 @@ async function connectToMachine(machineId, walletAddress) {
 
   const entry = await firebaseService.joinQueue(machineId, walletAddress);
 
-  // Chỉ auto-serve nếu queue chỉ có 1 người (tránh race condition)
+  // Auto-serve ONLY if no one is currently being served
   const currentServing = await firebaseService.getCurrentServing(machineId);
-  if (!currentServing && entry.position <= 1) {
-    await firebaseService.serveNext(machineId);
-    logger.info("Auto-served first user in queue:", walletAddress);
+  if (!currentServing) {
+    // Check again that this user is truly the first waiting
+    const freshPos = await firebaseService.getQueuePosition(machineId, walletAddress);
+    if (freshPos && freshPos.status === "waiting" && freshPos.peopleAhead === 0) {
+      await firebaseService.serveNext(machineId);
+      logger.info("Auto-served:", walletAddress);
+    }
   }
 
-  // Get position
-  const position = await firebaseService.getQueuePosition(machineId, walletAddress);
-
+  // Return ACTUAL final position (re-fetch after potential auto-serve)
+  const finalPosition = await firebaseService.getQueuePosition(machineId, walletAddress);
   return {
     queueId: entry.id,
     machineId,
     machineName: machine.name,
-    position: position ? position.position : entry.position,
-    status: position ? position.status : entry.status,
-    peopleAhead: position ? position.peopleAhead : entry.position - 1,
-    estimatedWaitMin: position ? position.peopleAhead * 1.5 : 0,
+    position: finalPosition ? finalPosition.position : entry.position,
+    status: finalPosition ? finalPosition.status : entry.status,
+    peopleAhead: finalPosition ? finalPosition.peopleAhead : 0,
+    estimatedWaitMin: finalPosition ? finalPosition.peopleAhead * 1.5 : 0,
     joinedAt: entry.joinedAt,
   };
 }
