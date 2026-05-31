@@ -69,6 +69,11 @@ router.post("/machine/:id/slots", checkAuth, async (req, res) => {
       updatedAt: new Date().toISOString(),
     });
 
+    // If admin sets a slot to available with quantity > 0, bring machine back online
+    if (status === "available" && qty > 0) {
+      await firebaseService.upsertMachine(req.params.id, { mode: "normal", isOnline: true });
+    }
+
     return success(res, { slot, name, price, priceETH, status, quantity: qty }, "Slot updated");
   } catch (err) {
     return error(res, err.message);
