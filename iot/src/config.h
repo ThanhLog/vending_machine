@@ -19,7 +19,7 @@
 #define MOTOR_TIMEOUT 8000 // ms (tang thoi gian cho san pham roi)
 
 // ===== PURCHASE TIMEOUT =====
-#define PURCHASE_TIMEOUT 300000 // 5 phut - sau thoi gian nay auto skip luot mua
+#define PURCHASE_TIMEOUT 180000 // 3 phut - BE quan ly countdown, ESP chi fallback
 
 // ===== SERVO =====
 #define SERVO_OPEN_ANGLE 90

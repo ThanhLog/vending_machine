@@ -258,10 +258,23 @@ void resetIdleTimer() {
 
 void checkPurchaseTimeout() {
   // Khong auto-skip luot mua — BE quan ly toan bo
-  // Chi giu ham nay de tuong thich, khong lam gi
+}
+
+// ── Sync order number from BE heartbeat ──────────────
+void syncOrderNumberFromBe() {
+  int beOrder = getBeOrderNumber();
+  if (beOrder > 0) {
+    currentOrderNum = beOrder;
+  }
 }
 
 unsigned long getIdleRemaining() {
+  // Use BE countdown if available, otherwise fallback to local
+  int beSec = getBeRemainingSeconds();
+  if (hasBeServing() && beSec > 0) {
+    return (unsigned long)beSec * 1000;
+  }
+  // Fallback: local timer
   if (isProcessing || currentState != IDLE) return 0;
   unsigned long elapsed = millis() - idleStartTime;
   if (elapsed >= PURCHASE_TIMEOUT) return 0;

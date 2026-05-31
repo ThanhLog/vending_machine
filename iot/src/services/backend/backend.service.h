@@ -12,3 +12,6 @@ void reportSuccess();
 void reportError(const String &msg);
 bool isMachineResting();
 const char *getMachineMode();
+int getBeOrderNumber();
+int getBeRemainingSeconds();
+bool hasBeServing();

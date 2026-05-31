@@ -18,6 +18,11 @@ int pendingOrderNum = 0;
 bool cmdReady = false;
 String machineMode = "normal";  // From heartbeat response
 
+// ── Countdown & order from BE heartbeat ──────────────
+static int beOrderNumber = 1;
+static int beRemainingSeconds = 0;
+static bool beHasServing = false;
+
 String backendUrl = BACKEND_URL;
 String machineId = MACHINE_ID;
 
@@ -164,14 +169,26 @@ void sendHeartbeatImpl() {
   int code = http.PUT(jsonBody);
 
   if (code == 200) {
-    // Parse response to get machine mode
+    // Parse response to get machine mode, orderNumber, countdown
     String resp = http.getString();
     JsonDocument respDoc;
     DeserializationError respErr = deserializeJson(respDoc, resp);
     if (!respErr) {
       JsonObjectConst data = respDoc["data"];
-      if (data && data["mode"]) {
-        machineMode = data["mode"].as<String>();
+      if (data) {
+        // Machine mode
+        if (data["mode"]) {
+          machineMode = data["mode"].as<String>();
+        }
+        // Order number from BE
+        if (data["orderNumber"]) {
+          beOrderNumber = data["orderNumber"].as<int>();
+        }
+        // Remaining seconds for countdown
+        if (data["remainingSeconds"].is<int>()) {
+          beRemainingSeconds = data["remainingSeconds"].as<int>();
+          beHasServing = data["hasServing"] ? data["hasServing"].as<bool>() : false;
+        }
       }
     }
   } else {
@@ -231,6 +248,18 @@ bool isMachineResting() {
 
 const char *getMachineMode() {
   return machineMode.c_str();
+}
+
+int getBeOrderNumber() {
+  return beOrderNumber;
+}
+
+int getBeRemainingSeconds() {
+  return beRemainingSeconds;
+}
+
+bool hasBeServing() {
+  return beHasServing;
 }
 
 // Forward declare from vending.service for reporting

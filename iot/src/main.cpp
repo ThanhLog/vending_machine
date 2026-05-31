@@ -124,7 +124,8 @@ void loop() {
   }
 
   updateNetwork();            // WebServer + Captive DNS
-  processBackendCommands();   // Poll API + Heartbeat
+  processBackendCommands();   // Poll API + Heartbeat (syncs orderNumber + countdown)
+  syncOrderNumberFromBe();    // Sync order number from BE heartbeat to vending
   updateVending();            // IR sensor + motor timeout
   dispatchCommand();          // Dispatch pending cmd to vending
   // checkPurchaseTimeout();  // DISABLED - auto skip gây lỗi lượt mua

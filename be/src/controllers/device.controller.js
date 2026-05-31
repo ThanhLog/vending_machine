@@ -29,7 +29,26 @@ async function registerMachine(req, res) {
 async function updateMachine(req, res) {
   try {
     const machine = await firebaseService.upsertMachine(req.params.id, req.body);
-    return success(res, machine);
+
+    // Include queue/turn info in heartbeat response for ESP32 display
+    const serving = await firebaseService.getCurrentServing(req.params.id);
+    let remainingSeconds = 0;
+    let hasServing = false;
+
+    if (serving && serving.expiresAt) {
+      const expiresAt = new Date(serving.expiresAt);
+      const now = new Date();
+      const diffMs = expiresAt.getTime() - now.getTime();
+      remainingSeconds = Math.max(0, Math.floor(diffMs / 1000));
+      hasServing = true;
+    }
+
+    return success(res, {
+      ...machine,
+      remainingSeconds,
+      hasServing,
+      orderNumber: machine.orderCounter || 1,
+    });
   } catch (err) {
     logger.error("updateMachine:", err.message);
     return error(res, err.message);

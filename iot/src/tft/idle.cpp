@@ -36,6 +36,7 @@ void drawIdle() {
 
   int orderNum = getCurrentOrderNumber();
   String timeStr = getTimeStr();
+  bool beServing = hasBeServing();
   unsigned long remainMs = getIdleRemaining();
   int remainSec = remainMs / 1000;
   int remainMin = remainSec / 60;
@@ -125,22 +126,36 @@ void drawIdle() {
     lastOrderNum = orderNum;
   }
 
-  // 4. CẬP NHẬT ĐẾM NGƯỢC
-  if (remainSec != lastRemainSec || firstRunIdle) {
-    tft.fillRect(50, 188, 160, 28, COLOR_CARD);
+  // 4. CẬP NHẬT ĐẾM NGƯỢC (BE countdown)
+  {
+    int displayRemainSec = beServing ? remainSec : lastRemainSec;
+    if (remainSec != lastRemainSec || firstRunIdle) {
+      tft.fillRect(50, 188, 160, 28, COLOR_CARD);
 
-    if (remainSec <= 60) {
-      tft.setTextColor(COLOR_ERROR);
-    } else if (remainSec <= 120) {
-      tft.setTextColor(COLOR_PRICE);
-    } else {
-      tft.setTextColor(COLOR_SUCCESS);
+      if (!beServing) {
+        tft.setTextColor(COLOR_SUBTEXT);
+        tft.setTextSize(2);
+        tft.setCursor(45, 195);
+        tft.print("CHO KHACH...");
+      } else if (remainSec <= 60) {
+        tft.setTextColor(COLOR_ERROR);
+        tft.setTextSize(2);
+        tft.setCursor(50, 195);
+        tft.printf("%d:%02d", remainMin, remainSecPart);
+      } else if (remainSec <= 120) {
+        tft.setTextColor(COLOR_PRICE);
+        tft.setTextSize(2);
+        tft.setCursor(50, 195);
+        tft.printf("%d:%02d", remainMin, remainSecPart);
+      } else {
+        tft.setTextColor(COLOR_SUCCESS);
+        tft.setTextSize(2);
+        tft.setCursor(50, 195);
+        tft.printf("%d:%02d", remainMin, remainSecPart);
+      }
+
+      lastRemainSec = remainSec;
     }
-    tft.setTextSize(2);
-    tft.setCursor(50, 195);
-    tft.printf("%d:%02d", remainMin, remainSecPart);
-
-    lastRemainSec = remainSec;
   }
 
   // 5. Trạng thái
