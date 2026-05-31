@@ -48,7 +48,7 @@ class _PurchaseState extends State<Purchase> {
             onPressed: () {
               Navigator.pop(ctx);
               context.read<PurchaseCubit>().finishShopping();
-              Navigator.pop(context); // Go back to lobby
+              Navigator.pop(context);
             },
             child: const Text(
               'Ket thuc',
@@ -71,6 +71,57 @@ class _PurchaseState extends State<Purchase> {
     );
   }
 
+  // ── Retry dialog (when dispense fails) ─────────────────
+  void _showRetryDialog(BuildContext context, String? error) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.redAccent),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'May gap loi khi nha hang',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          error ?? 'Khong phat hien san pham roi. Ban co muon thu lai?',
+          style: const TextStyle(color: Color(0xFF94A3B8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<PurchaseCubit>().finishShopping();
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'Huy bo',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<PurchaseCubit>().retryDispense();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Thu lai'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PurchaseCubit, PurchaseState>(
@@ -78,6 +129,10 @@ class _PurchaseState extends State<Purchase> {
         // Show continue dialog when dispense completes
         if (state.showContinueDialog) {
           _showContinueDialog(context);
+        }
+        // Show retry dialog when dispense fails
+        if (state.showRetryDialog) {
+          _showRetryDialog(context, state.dispenseError);
         }
         if (state.purchaseSuccess &&
             state.dispenseStatus == DispenseStatus.none) {

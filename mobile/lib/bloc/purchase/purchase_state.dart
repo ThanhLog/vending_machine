@@ -14,7 +14,11 @@ class PurchaseState {
   final DispenseStatus dispenseStatus;
   final String? dispenseError;
   final bool showContinueDialog;
+  final bool showRetryDialog;
   final String? walletAddress;
+  final String? lastSlot;
+  final String? lastProductName;
+  final double lastPriceETH;
 
   const PurchaseState({
     this.isLoading = false,
@@ -28,7 +32,11 @@ class PurchaseState {
     this.dispenseStatus = DispenseStatus.none,
     this.dispenseError,
     this.showContinueDialog = false,
+    this.showRetryDialog = false,
     this.walletAddress,
+    this.lastSlot,
+    this.lastProductName,
+    this.lastPriceETH = 0.001,
   });
 
   PurchaseState copyWith({
@@ -43,7 +51,11 @@ class PurchaseState {
     DispenseStatus? dispenseStatus,
     String? dispenseError,
     bool? showContinueDialog,
+    bool? showRetryDialog,
     String? walletAddress,
+    String? lastSlot,
+    String? lastProductName,
+    double? lastPriceETH,
     bool clearError = false,
   }) {
     return PurchaseState(
@@ -58,7 +70,11 @@ class PurchaseState {
       dispenseStatus: dispenseStatus ?? this.dispenseStatus,
       dispenseError: dispenseError ?? this.dispenseError,
       showContinueDialog: showContinueDialog ?? this.showContinueDialog,
+      showRetryDialog: showRetryDialog ?? this.showRetryDialog,
       walletAddress: walletAddress ?? this.walletAddress,
+      lastSlot: lastSlot ?? this.lastSlot,
+      lastProductName: lastProductName ?? this.lastProductName,
+      lastPriceETH: lastPriceETH ?? this.lastPriceETH,
     );
   }
 }

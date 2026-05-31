@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class BannerHome extends StatelessWidget {
   final String walletAddress;
@@ -42,13 +43,28 @@ class BannerHome extends StatelessWidget {
                   fontSize: 32,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.wallet, color: Colors.white54, size: 16),
-              const SizedBox(width: 6),
-              Text(shortAddress,
-                  style: const TextStyle(color: Colors.white54, fontSize: 14)),
-            ],
+          GestureDetector(
+            onTap: () {
+              // Copy full address to clipboard
+              Clipboard.setData(ClipboardData(text: walletAddress));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Da copy: $walletAddress'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.wallet, color: Colors.white54, size: 16),
+                const SizedBox(width: 6),
+                Text(shortAddress,
+                    style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(width: 6),
+                const Icon(Icons.copy, color: Colors.white38, size: 14),
+              ],
+            ),
           ),
         ],
       ),

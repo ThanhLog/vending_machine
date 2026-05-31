@@ -97,6 +97,9 @@ class PurchaseCubit extends Cubit<PurchaseState> {
         txHash: txHash,
         commandId: commandId,
         walletAddress: walletAddress,
+        lastSlot: slot,
+        lastProductName: productName,
+        lastPriceETH: priceETH,
         dispenseStatus: commandId != null
             ? DispenseStatus.pending
             : DispenseStatus.none,
@@ -136,12 +139,61 @@ class PurchaseCubit extends Cubit<PurchaseState> {
           emit(state.copyWith(
             dispenseStatus: DispenseStatus.failed,
             dispenseError: cmd['errorMessage'] as String?,
-            showContinueDialog: true,
+            showRetryDialog: true,  // Show Retry/Cancel instead of Buy more
           ));
           timer.cancel();
         }
       } catch (_) {}
     });
+  }
+
+  // ── Retry dispense (after failure) ─────────────────────
+  Future<void> retryDispense() async {
+    final slot = state.lastSlot;
+    final productName = state.lastProductName;
+    final walletAddr = state.walletAddress;
+    final machine = state.machineId;
+    final priceETH = state.lastPriceETH;
+
+    if (slot == null || walletAddr == null || machine.isEmpty) return;
+
+    emit(state.copyWith(
+      showRetryDialog: false,
+      isPurchasing: true,
+      purchaseSuccess: false,
+      dispenseStatus: DispenseStatus.none,
+      dispenseError: null,
+      commandId: null,
+    ));
+
+    try {
+      // Retry purchase via backend (no payment needed — txHash same)
+      final order = await _api.retryPurchase(
+        machineId: machine,
+        slot: slot,
+        productName: productName ?? '',
+        walletAddress: walletAddr,
+      );
+
+      final commandId = order['commandId'] as String?;
+
+      emit(state.copyWith(
+        isPurchasing: false,
+        purchaseSuccess: true,
+        commandId: commandId,
+        dispenseStatus: commandId != null ? DispenseStatus.pending : DispenseStatus.none,
+      ));
+
+      if (commandId != null) {
+        _pollDispenseStatus(machine, commandId);
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        isPurchasing: false,
+        errorMessage: 'Retry failed: $e',
+        showRetryDialog: true,
+      ));
+    }
   }
 
   // ── Continue shopping: reload slots and reset ──────────

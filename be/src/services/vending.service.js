@@ -144,13 +144,9 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
     throw new Error(`Payment sender ${verification.from} does not match wallet ${walletAddress}`);
   }
 
-  // Decrease quantity; if 0 → mark as empty
-  const newQty = currentQty - 1;
-  const slotUpdate = { quantity: newQty };
-  if (newQty <= 0) {
-    slotUpdate.status = "empty";
-  }
-  await firebaseService.updateSlot(machineId, slot, slotUpdate);
+  // Mark slot as "dispensing" — ESP32 will confirm actual dispense
+  // Quantity is NOT decreased here; that happens when ESP32 reports "completed"
+  await firebaseService.updateSlot(machineId, slot, { status: "dispensing" });
 
   // Increment machine orderCounter (BE manages order number)
   const orderNumber = await firebaseService.incrementOrderCounter(machineId);
@@ -185,8 +181,12 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
   await UserModel.addPurchase(walletAddress, expectedPrice);
 
   // Check if machine is now empty → set rest mode
+  // "dispensing" slots still have stock — count as available
   const allSlots = await firebaseService.getSlots(machineId);
-  const hasAvailable = allSlots.some((s) => s.status === "available" && (s.quantity == null || s.quantity > 0));
+  const hasAvailable = allSlots.some((s) =>
+    (s.status === "available" || s.status === "dispensing") &&
+    (s.quantity == null || s.quantity > 0)
+  );
   if (!hasAvailable) {
     await firebaseService.upsertMachine(machineId, { mode: "rest", isOnline: false });
     logger.info("Machine", machineId, "set to REST mode (no available slots)");

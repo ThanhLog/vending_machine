@@ -124,6 +124,28 @@ class ApiService {
     return body['data'];
   }
 
+  // ── Retry dispense (after failure, no payment) ──────────
+  Future<Map<String, dynamic>> retryPurchase({
+    required String machineId,
+    required String slot,
+    required String productName,
+    required String walletAddress,
+  }) async {
+    final res = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.retryPurchase}'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'machineId': machineId,
+        'slot': slot,
+        'productName': productName,
+        'walletAddress': walletAddress,
+      }),
+    );
+    final body = json.decode(res.body);
+    if (body['success'] == false) throw Exception(body['message']);
+    return body['data'];
+  }
+
   // ── Finish Shopping ───────────────────────────────────
   Future<Map<String, dynamic>> finishShopping(
     String machineId,

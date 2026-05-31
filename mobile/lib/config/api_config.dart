@@ -13,6 +13,7 @@ class ApiConfig {
   static String serveNext(String id) => '/api/vending/$id/serve-next';
   static String finishShopping(String id) => '/api/vending/$id/finish-shopping';
   static const String purchase = '/api/product/purchase';
+  static const String retryPurchase = '/api/product/retry';
   static String machineSlots(String id) => '/api/product/machine/$id';
   static String walletBalance(String address) => '/api/wallet/$address/balance';
   static String walletHistory(String address) => '/api/wallet/$address/history';
