@@ -27,7 +27,7 @@
 #define SERVO_DELAY 3000 // ms
 
 // ===== SENSOR =====
-#define IR_TRIGGER LOW
+#define IR_TRIGGER HIGH  // Dao logic: HIGH = vat can (IR1), LOW = clear
 #define IR_DEBOUNCE_TIME 60 // ms
 
 // ===== BUZZER =====
