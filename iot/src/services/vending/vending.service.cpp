@@ -256,6 +256,13 @@ void resetIdleTimer() {
   idleStartTime = millis();
 }
 
+void setVendingReady() {
+  if (!isProcessing) {
+    vendingStatus = VENDING_READY;
+    Serial.println("[Vending] Status reset to READY");
+  }
+}
+
 void checkPurchaseTimeout() {
   // Khong auto-skip luot mua — BE quan ly toan bo
 }

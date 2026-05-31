@@ -29,8 +29,8 @@ void drawIdle() {
     lastDraw = 0;
   }
 
-  // Giới hạn tần suất cập nhật
-  if (millis() - lastDraw < 1000)
+  // Gioi han tan suat cap nhat — 200ms du cho marquee scroll muot
+  if (millis() - lastDraw < 200)
     return;
   lastDraw = millis();
 
@@ -52,11 +52,8 @@ void drawIdle() {
     // ── Header: Tên máy + ID ─────────────────────
     tft.fillRoundRect(5, 5, 230, 50, 12, COLOR_CARD);
 
-    // Tên máy
-    tft.setTextColor(COLOR_ACCENT);
-    tft.setTextSize(2);
-    tft.setCursor(15, 8);
-    tft.print(MACHINE_NAME);
+    // Tên máy (marquee scroll neu qua dai)
+    drawMarquee(15, 8, 200, MACHINE_NAME, COLOR_ACCENT, 2);
 
     // ID máy
     tft.setTextColor(COLOR_SUBTEXT);
@@ -94,21 +91,20 @@ void drawIdle() {
     firstRunIdle = false;
   }
 
-  // 2. CẬP NHẬT THÔNG BÁO
-  if (notifMsg != lastNotif || firstRunIdle) {
-    tft.fillRect(22, 62, 196, 14, COLOR_BG);
-
-    if (showNotif && notifMsg.length() > 0) {
-      tft.setTextColor(COLOR_PRICE);
-      tft.setTextSize(1);
-      // Can giua thong bao
-      int msgW = notifMsg.length() * 6;
-      int x = 120 - msgW / 2;
-      if (x < 25) x = 25;
-      tft.setCursor(x, 64);
-      tft.print(notifMsg);
+  // 2. CẬP NHẬT THÔNG BÁO (marquee scroll)
+  {
+    bool notifChanged = (notifMsg != lastNotif);
+    if (notifChanged) {
+      tft.fillRect(22, 62, 196, 14, COLOR_BG);
+      if (showNotif && notifMsg.length() > 0) {
+        drawMarquee(25, 64, 185, notifMsg, COLOR_PRICE, 1);
+      }
+      lastNotif = notifMsg;
     }
-    lastNotif = notifMsg;
+    // Luon cap nhat marquee ngay ca khi text khong doi (de scroll tiep)
+    if (showNotif && notifMsg.length() > 0 && !notifChanged) {
+      drawMarquee(25, 64, 185, notifMsg, COLOR_PRICE, 1);
+    }
   }
 
   // 3. CẬP NHẬT SỐ LƯỢT MUA

@@ -19,6 +19,9 @@ enum UIState { WIFI_SETUP, IDLE, SELECT, PROCESSING, SUCCESS, ERROR_STATE };
 extern UIState currentState;
 extern bool uiStateChanged;
 
+// ===== MARQUEE TEXT =====
+void drawMarquee(int x, int y, int maxW, const String &text, uint16_t color, uint8_t size = 1);
+
 // ===== NOTIFICATION =====
 void setNotification(const char* msg);
 void clearNotification();

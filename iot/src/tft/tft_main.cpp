@@ -50,9 +50,6 @@ void initTFT() {
   tft.fillScreen(ST77XX_BLACK);
 }
 
-// Forward declaration
-static void checkDeferredTransition();
-
 // ===== UI =====
 void drawUI() {
 
@@ -89,9 +86,6 @@ void drawUI() {
 
     return;
   }
-
-  // ── Check deferred transitions ─────────────────────
-  checkDeferredTransition();
 
   // ===== STATE MACHINE =====
   static UIState lastState = (UIState)-1;
@@ -134,46 +128,99 @@ void drawUI() {
 }
 
 
-static unsigned long processingEntered = 0;
-static UIState deferredState = IDLE;
-static bool hasDeferred = false;
+// ===== MARQUEE SCROLLING TEXT =====
+// Dung cho text dai tranh xuong dong vo layout
+// Tu dong scroll neu text vuot qua maxW
 
-void changeState(UIState newState) {
-  // Min display time for PROCESSING: at least 2 seconds before allowing transition
-  if (currentState == PROCESSING && newState != PROCESSING) {
-    if (millis() - processingEntered < 2000) {
-      // Defer the transition
-      deferredState = newState;
-      hasDeferred = true;
-      Serial.printf("[TFT] Deferring state change to %d (will apply in %lu ms)\n",
-                    newState, 2000 - (millis() - processingEntered));
-      return;
-    }
+struct MarqueeState {
+  String text;
+  int scrollX;
+  int textW;
+  unsigned long lastMove;
+  bool waiting;     // pause o dau truoc khi scroll
+  unsigned long waitStart;
+};
+
+static MarqueeState marquee1 = {"", 0, 0, 0, true, 0};
+static MarqueeState marquee2 = {"", 0, 0, 0, true, 0};
+
+void drawMarquee(int x, int y, int maxW, const String &text, uint16_t color, uint8_t size) {
+  tft.setTextColor(color);
+  tft.setTextSize(size);
+  tft.setTextWrap(false);
+
+  int charW = (size == 1) ? 6 : (size == 2) ? 12 : 18;
+  int textW = text.length() * charW;
+
+  // Chon slot marquee dua tren vi tri y (tranh trung lap)
+  MarqueeState &mq = (y < 100) ? marquee1 : marquee2;
+
+  // Reset neu text thay doi
+  if (mq.text != text) {
+    mq.text = text;
+    mq.scrollX = 0;
+    mq.textW = textW;
+    mq.lastMove = millis();
+    mq.waiting = true;
+    mq.waitStart = millis();
   }
 
-  if (newState == PROCESSING) {
-    processingEntered = millis();
-    hasDeferred = false;
+  // Neu text vua khung → ve tinh, khong scroll
+  if (textW <= maxW) {
+    tft.setCursor(x, y);
+    tft.print(text);
+    return;
+  }
+
+  unsigned long now = millis();
+
+  // Scroll animation
+  if (mq.waiting) {
+    // Dung 1.5s o dau dong
+    if (now - mq.waitStart > 1500) {
+      mq.waiting = false;
+      mq.lastMove = now;
+    }
+    // Ve o vi tri dau
+    tft.setCursor(x, y);
+    tft.print(text.substring(0, maxW / charW));
+  } else {
+    // Di chuyen moi 350ms
+    if (now - mq.lastMove > 350) {
+      mq.lastMove = now;
+      mq.scrollX += charW;
+      // Khi scroll het → quay lai dau sau 1.5s pause
+      if (mq.scrollX > textW - maxW + charW * 3) {
+        mq.scrollX = 0;
+        mq.waiting = true;
+        mq.waitStart = now;
+      }
+    }
+
+    // Tinh offset va ve
+    int charOffset = mq.scrollX / charW;
+    int pixelOffset = mq.scrollX % charW;
+    String visible = text.substring(charOffset);
+    // Gioi han so ky tu vua man hinh
+    int maxChars = maxW / charW + 2;
+    if (visible.length() > maxChars) {
+      visible = visible.substring(0, maxChars);
+    }
+    tft.setCursor(x - (pixelOffset > 0 ? pixelOffset : 0), y);
+    tft.print(visible);
+  }
+}
+
+void changeState(UIState newState) {
+  // Reset vending status when going back to IDLE
+  if (newState == IDLE && currentState != IDLE) {
+    setVendingReady();
   }
 
   currentState = newState;
   startTime = millis();
   if (newState == IDLE) {
     resetIdleTimer();
-  }
-}
-
-// Check and apply deferred state transitions (called from drawUI)
-static void checkDeferredTransition() {
-  if (!hasDeferred) return;
-  if (currentState != PROCESSING) {
-    hasDeferred = false;
-    return;
-  }
-  if (millis() - processingEntered >= 2000) {
-    hasDeferred = false;
-    Serial.printf("[TFT] Applying deferred state: %d\n", deferredState);
-    changeState(deferredState);
   }
 }
 

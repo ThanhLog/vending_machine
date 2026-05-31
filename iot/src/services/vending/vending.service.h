@@ -20,3 +20,4 @@ void resetIdleTimer();
 void checkPurchaseTimeout();
 unsigned long getIdleRemaining();
 void syncOrderNumberFromBe();
+void setVendingReady();
