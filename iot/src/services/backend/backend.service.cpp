@@ -43,9 +43,22 @@ void parseCommand(const JsonDocument &doc) {
   if (doc["success"].as<bool>() == false)
     return;
 
-  JsonArrayConst cmds = doc["data"].as<JsonArrayConst>();
-  if (!cmds || cmds.size() == 0)
+  JsonObjectConst data = doc["data"];
+
+  // ── Always sync order number from BE ──────────────
+  if (data["orderNumber"].is<int>()) {
+    beOrderNumber = data["orderNumber"].as<int>();
+  }
+
+  // ── Parse commands array ──────────────────────────
+  JsonArrayConst cmds = data["commands"].as<JsonArrayConst>();
+  if (!cmds || cmds.size() == 0) {
+    // No pending commands but we still got orderNumber — sync to vending
+    if (data["orderNumber"].is<int>()) {
+      syncOrderNumberFromBe();
+    }
     return;
+  }
 
   JsonObjectConst cmd = cmds[0];
   pendingCmdId = cmd["id"].as<String>();
@@ -59,6 +72,8 @@ void parseCommand(const JsonDocument &doc) {
   Serial.print(pendingCmdId);
   Serial.print(" slot=");
   Serial.print(pendingSlot);
+  Serial.print(" order=");
+  Serial.print(pendingOrderNum);
   Serial.print(" product=");
   Serial.println(product);
 

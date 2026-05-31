@@ -5,8 +5,12 @@ const logger = require("../utils/logger");
 // GET /api/command/machine/:id/pending
 async function getPendingCommands(req, res) {
   try {
+    const firebaseService = require("../services/firebase.service");
     const commands = await commandService.getPendingCommands(req.params.id);
-    return success(res, commands);
+    // Always include current orderNumber so ESP32 stays in sync
+    const machine = await firebaseService.getMachineById(req.params.id);
+    const orderNumber = machine ? (machine.orderCounter || 0) : 0;
+    return success(res, { commands, orderNumber });
   } catch (err) {
     logger.error("getPendingCommands:", err.message);
     return error(res, err.message);

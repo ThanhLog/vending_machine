@@ -13,7 +13,7 @@
 #define MACHINE_ID "machine-hanoi-05"
 #define MACHINE_NAME "May Ban Hang Hanoi-05"
 #define POLL_INTERVAL 2000    // ms
-#define HEARTBEAT_INTERVAL 30000 // ms
+#define HEARTBEAT_INTERVAL 10000 // ms (10s - dong bo nhanh hon)
 
 // ===== MOTOR =====
 #define MOTOR_TIMEOUT 3000 // ms (3 giay - khong dung IR)
