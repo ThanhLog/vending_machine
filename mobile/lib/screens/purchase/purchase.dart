@@ -21,28 +21,65 @@ class _PurchaseState extends State<Purchase> {
     context.read<PurchaseCubit>().loadSlots(widget.machineId);
   }
 
+  void _showContinueDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Row(
+          children: [
+            Icon(Icons.shopping_bag, color: Colors.cyanAccent),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Ban co muon mua them?',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Ban co the tiep tuc chon san pham khac hoac ket thuc luot mua.',
+          style: TextStyle(color: Color(0xFF94A3B8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<PurchaseCubit>().finishShopping();
+              Navigator.pop(context); // Go back to lobby
+            },
+            child: const Text(
+              'Ket thuc',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<PurchaseCubit>().continueShopping();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.cyanAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Mua them'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PurchaseCubit, PurchaseState>(
       listener: (context, state) {
-        if (state.dispenseStatus == DispenseStatus.completed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Product dispensed! Please collect from the machine.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          context.read<PurchaseCubit>().resetPurchase();
-        } else if (state.dispenseStatus == DispenseStatus.failed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Dispense failed: ${state.dispenseError ?? "Unknown error"}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          context.read<PurchaseCubit>().resetPurchase();
-        } else if (state.purchaseSuccess &&
+        // Show continue dialog when dispense completes
+        if (state.showContinueDialog) {
+          _showContinueDialog(context);
+        }
+        if (state.purchaseSuccess &&
             state.dispenseStatus == DispenseStatus.none) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -50,7 +87,6 @@ class _PurchaseState extends State<Purchase> {
               backgroundColor: Colors.green,
             ),
           );
-          context.read<PurchaseCubit>().resetPurchase();
         }
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(

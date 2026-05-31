@@ -2,6 +2,7 @@
 #include "services/time/time.service.h"
 #include "services/vending/vending.service.h"
 #include "services/weather/weather.service.h"
+#include "services/backend/backend.service.h"
 #include "config.h"
 #include "tft.h"
 #include <WiFi.h>
@@ -145,10 +146,16 @@ void drawIdle() {
   // 5. Trạng thái
   {
     tft.fillRect(30, 238, 180, 22, COLOR_CARD);
-    tft.setTextColor(COLOR_SUCCESS);
+    bool resting = isMachineResting();
+    tft.setTextColor(resting ? COLOR_PRICE : COLOR_SUCCESS);
     tft.setTextSize(2);
-    tft.setCursor(50, 240);
-    tft.print("SAN SANG");
+    if (resting) {
+      tft.setCursor(65, 240);
+      tft.print("NGHI - HET HANG");
+    } else {
+      tft.setCursor(50, 240);
+      tft.print("SAN SANG");
+    }
   }
 
   // 6. CẬP NHẬT THỜI GIAN + WiFi

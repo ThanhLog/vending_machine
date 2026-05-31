@@ -84,6 +84,7 @@ class PurchaseCubit extends Cubit<PurchaseState> {
             price: p.price,
             priceETH: p.priceETH,
             status: 'sold',
+            quantity: (p.quantity - 1).clamp(0, 999),
           );
         }
         return p;
@@ -95,6 +96,7 @@ class PurchaseCubit extends Cubit<PurchaseState> {
         slots: updatedSlots,
         txHash: txHash,
         commandId: commandId,
+        walletAddress: walletAddress,
         dispenseStatus: commandId != null
             ? DispenseStatus.pending
             : DispenseStatus.none,
@@ -125,17 +127,59 @@ class PurchaseCubit extends Cubit<PurchaseState> {
         if (status == 'processing') {
           emit(state.copyWith(dispenseStatus: DispenseStatus.processing));
         } else if (status == 'completed') {
-          emit(state.copyWith(dispenseStatus: DispenseStatus.completed));
+          emit(state.copyWith(
+            dispenseStatus: DispenseStatus.completed,
+            showContinueDialog: true,
+          ));
           timer.cancel();
         } else if (status == 'failed') {
           emit(state.copyWith(
             dispenseStatus: DispenseStatus.failed,
             dispenseError: cmd['errorMessage'] as String?,
+            showContinueDialog: true,
           ));
           timer.cancel();
         }
       } catch (_) {}
     });
+  }
+
+  // ── Continue shopping: reload slots and reset ──────────
+  Future<void> continueShopping() async {
+    _dispenseTimer?.cancel();
+    emit(state.copyWith(
+      showContinueDialog: false,
+      purchaseSuccess: false,
+      txHash: null,
+      commandId: null,
+      dispenseStatus: DispenseStatus.none,
+      dispenseError: null,
+      isPurchasing: false,
+    ));
+    await loadSlots(state.machineId);
+  }
+
+  // ── Finish shopping: call backend to complete serving ───
+  Future<void> finishShopping() async {
+    _dispenseTimer?.cancel();
+    final walletAddr = state.walletAddress;
+    final machine = state.machineId;
+    if (walletAddr == null || machine.isEmpty) return;
+
+    try {
+      await _api.finishShopping(machine, walletAddr);
+    } catch (_) {
+      // Still proceed even if API fails
+    }
+    emit(state.copyWith(
+      showContinueDialog: false,
+      purchaseSuccess: false,
+      txHash: null,
+      commandId: null,
+      dispenseStatus: DispenseStatus.none,
+      dispenseError: null,
+      isPurchasing: false,
+    ));
   }
 
   void clearError() => emit(state.copyWith(clearError: true));

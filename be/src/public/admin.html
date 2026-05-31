@@ -90,6 +90,7 @@
         <input type="number" id="prodPriceETH" placeholder="Gia ETH (VD: 0.001)" step="0.0001" min="0">
       </div>
       <div class="form-row">
+        <input type="number" id="prodQuantity" placeholder="So luong (mac dinh 1)" min="0" value="1" style="flex:0.5">
         <select id="prodStatus">
           <option value="available">Available - Dang ban</option>
           <option value="sold">Sold - Da ban</option>
@@ -164,7 +165,7 @@
 
       let html = `<table>
         <thead><tr>
-          <th>Slot</th><th>Ten SP</th><th>Gia VND</th><th>Gia ETH</th><th>Trang Thai</th><th></th>
+          <th>Slot</th><th>Ten SP</th><th>Gia VND</th><th>Gia ETH</th><th>SL</th><th>Trang Thai</th><th></th>
         </tr></thead><tbody>`;
 
       slots.forEach(p => {
@@ -177,9 +178,10 @@
           <td><b>${p.name || '(chua co ten)'}</b></td>
           <td>${p.price || '-'}</td>
           <td>${p.priceETH || '0.001'} ETH</td>
+          <td>${p.quantity != null ? p.quantity : 1}</td>
           <td><span class="badge ${statusClass}">${statusText}</span></td>
           <td class="actions">
-            <button class="btn btn-edit" style="padding:6px 12px;font-size:12px" onclick="editProduct('${p.slot}','${(p.name||'').replace(/'/g,"\\'")}','${(p.price||'').replace(/'/g,"\\'")}',${p.priceETH||0.001},'${p.status}')">Sua</button>
+            <button class="btn btn-edit" style="padding:6px 12px;font-size:12px" onclick="editProduct('${p.slot}','${(p.name||'').replace(/'/g,"\\'")}','${(p.price||'').replace(/'/g,"\\'")}',${p.priceETH||0.001},'${p.status}',${p.quantity != null ? p.quantity : 1})">Sua</button>
             ${p.status !== 'available' ? `<button class="btn btn-avail" style="padding:6px 12px;font-size:12px" onclick="toggleSlot('${p.slot}','available')">Mo</button>` : `<button class="btn btn-del" style="padding:6px 12px;font-size:12px" onclick="toggleSlot('${p.slot}','unavailable')">Tat</button>`}
           </td>
         </tr>`;
@@ -199,11 +201,12 @@
       document.getElementById('prodPrice').value = '';
       document.getElementById('prodPriceETH').value = '0.001';
       document.getElementById('prodStatus').value = 'available';
+      document.getElementById('prodQuantity').value = '1';
       document.getElementById('productModal').classList.add('active');
     }
 
     // ── Edit product ──────────────────────────────────
-    function editProduct(slot, name, price, priceETH, status) {
+    function editProduct(slot, name, price, priceETH, status, quantity) {
       document.getElementById('modalTitle').textContent = 'Sua San Pham';
       document.getElementById('editSlot').value = slot;
       document.getElementById('slotNum').value = slot;
@@ -212,6 +215,7 @@
       document.getElementById('prodPrice').value = price;
       document.getElementById('prodPriceETH').value = priceETH;
       document.getElementById('prodStatus').value = status;
+      document.getElementById('prodQuantity').value = quantity != null ? quantity : 1;
       document.getElementById('productModal').classList.add('active');
     }
 
@@ -228,6 +232,7 @@
       const price = document.getElementById('prodPrice').value;
       const priceETH = parseFloat(document.getElementById('prodPriceETH').value) || 0.001;
       const status = document.getElementById('prodStatus').value;
+      const quantity = parseInt(document.getElementById('prodQuantity').value) || 1;
 
       if (!slot) return showAlert('Vui long nhap so khe!', 'error');
       if (!name) return showAlert('Vui long nhap ten san pham!', 'error');
@@ -239,7 +244,7 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${ADMIN_PASS}`
           },
-          body: JSON.stringify({ slot, name, price, priceETH, status })
+          body: JSON.stringify({ slot, name, price, priceETH, status, quantity })
         });
         const data = await res.json();
         if (data.success) {

@@ -16,6 +16,7 @@ String pendingCmdId = "";
 int pendingSlot = 0;
 int pendingOrderNum = 0;
 bool cmdReady = false;
+String machineMode = "normal";  // From heartbeat response
 
 String backendUrl = BACKEND_URL;
 String machineId = MACHINE_ID;
@@ -162,7 +163,18 @@ void sendHeartbeatImpl() {
 
   int code = http.PUT(jsonBody);
 
-  if (code != 200) {
+  if (code == 200) {
+    // Parse response to get machine mode
+    String resp = http.getString();
+    JsonDocument respDoc;
+    DeserializationError respErr = deserializeJson(respDoc, resp);
+    if (!respErr) {
+      JsonObjectConst data = respDoc["data"];
+      if (data && data["mode"]) {
+        machineMode = data["mode"].as<String>();
+      }
+    }
+  } else {
     Serial.print("[Backend] Heartbeat HTTP ");
     Serial.println(code);
   }
@@ -211,6 +223,14 @@ void clearPendingCommand() {
   pendingCmdId = "";
   pendingSlot = 0;
   pendingOrderNum = 0;
+}
+
+bool isMachineResting() {
+  return machineMode == "rest";
+}
+
+const char *getMachineMode() {
+  return machineMode.c_str();
 }
 
 // Forward declare from vending.service for reporting

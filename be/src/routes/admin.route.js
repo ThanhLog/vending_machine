@@ -54,8 +54,10 @@ router.get("/machine/:id/slots", checkAuth, async (req, res) => {
 // ── API: Add/Update slot ────────────────────────────
 router.post("/machine/:id/slots", checkAuth, async (req, res) => {
   try {
-    const { slot, name, price, priceETH, status } = req.body;
+    const { slot, name, price, priceETH, status, quantity } = req.body;
     if (!slot) return error(res, "slot is required", 400);
+
+    const qty = quantity != null ? parseInt(quantity) : 1;
 
     await firebaseService.updateSlot(req.params.id, String(slot), {
       slot: String(slot),
@@ -63,10 +65,11 @@ router.post("/machine/:id/slots", checkAuth, async (req, res) => {
       price: price || "",
       priceETH: priceETH || 0.001,
       status: status || "available",
+      quantity: qty,
       updatedAt: new Date().toISOString(),
     });
 
-    return success(res, { slot, name, price, priceETH, status }, "Slot updated");
+    return success(res, { slot, name, price, priceETH, status, quantity: qty }, "Slot updated");
   } catch (err) {
     return error(res, err.message);
   }

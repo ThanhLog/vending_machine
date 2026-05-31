@@ -125,6 +125,12 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
     throw new Error(`Slot ${slot} is not available (status: ${slotData.status})`);
   }
 
+  // Check quantity
+  const currentQty = slotData.quantity != null ? slotData.quantity : 1;
+  if (currentQty <= 0) {
+    throw new Error(`Slot ${slot} is out of stock`);
+  }
+
   // Verify blockchain payment
   const expectedPrice = slotData.priceETH || env.PRODUCT_PRICE_ETH;
   const verification = await blockchainService.verifyPayment(txHash, expectedPrice);
@@ -138,8 +144,16 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
     throw new Error(`Payment sender ${verification.from} does not match wallet ${walletAddress}`);
   }
 
-  // Mark slot as sold temporarily
-  await firebaseService.updateSlot(machineId, slot, { status: "sold" });
+  // Decrease quantity; if 0 → mark as empty
+  const newQty = currentQty - 1;
+  const slotUpdate = { quantity: newQty };
+  if (newQty <= 0) {
+    slotUpdate.status = "empty";
+  }
+  await firebaseService.updateSlot(machineId, slot, slotUpdate);
+
+  // Increment machine orderCounter (BE manages order number)
+  const orderNumber = await firebaseService.incrementOrderCounter(machineId);
 
   // Create order record
   const order = await OrderModel.create({
@@ -152,23 +166,48 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
     commandId: null,
   });
 
-  // Create dispense command for ESP32
+  // Create dispense command for ESP32 (with orderNumber from BE)
   const commandService = require("./command.service");
   const command = await commandService.createCommand(machineId, {
     slot,
     orderId: order.id,
     productName: slotData.name || productName,
     queueId: serving.id,
+    orderNumber,
   });
 
   // Update order with commandId
   await OrderModel.setCommandId(order.id, command.id);
   order.commandId = command.id;
+  order.orderNumber = orderNumber;
 
   // Update user stats
   await UserModel.addPurchase(walletAddress, expectedPrice);
 
-  // Complete queue serving
+  // Check if machine is now empty → set rest mode
+  const allSlots = await firebaseService.getSlots(machineId);
+  const hasAvailable = allSlots.some((s) => s.status === "available" && (s.quantity == null || s.quantity > 0));
+  if (!hasAvailable) {
+    await firebaseService.upsertMachine(machineId, { mode: "rest", isOnline: false });
+    logger.info("Machine", machineId, "set to REST mode (no available slots)");
+  }
+
+  // NOT auto-complete serving — user can continue shopping
+  // Queue will be completed when user calls finish-shopping
+
+  logger.info("Purchase completed:", order.id, "orderNumber:", orderNumber, "slot:", slot, "by:", walletAddress, "command:", command.id);
+  return order;
+}
+
+/**
+ * Finish shopping: complete serving and serve next in queue.
+ */
+async function finishShopping(machineId, walletAddress) {
+  const serving = await firebaseService.getCurrentServing(machineId);
+  if (!serving || serving.walletAddress !== walletAddress.toLowerCase()) {
+    throw new Error("Not currently serving this user");
+  }
+
   await firebaseService.completeServing(machineId, serving.id);
 
   // Serve next in queue
@@ -178,8 +217,8 @@ async function processPurchase({ machineId, slot, productName, txHash, walletAdd
     notificationService.notifyTurnReady(machineId, next.id, next.walletAddress, next.expiresAt);
   }
 
-  logger.info("Purchase completed:", order.id, "slot:", slot, "by:", walletAddress, "command:", command.id);
-  return order;
+  logger.info("Shopping finished for:", walletAddress, "machine:", machineId);
+  return { finished: true, nextServed: !!next };
 }
 
 /**
@@ -212,5 +251,6 @@ module.exports = {
   connectToMachine,
   checkQueueStatus,
   processPurchase,
+  finishShopping,
   getPurchaseHistory,
 };

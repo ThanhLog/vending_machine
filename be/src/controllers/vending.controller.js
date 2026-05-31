@@ -80,4 +80,18 @@ async function serveNext(req, res) {
   }
 }
 
-module.exports = { listMachines, getMachine, connectMachine, queueStatus, serveNext };
+// POST /api/vending/:id/finish-shopping
+async function finishShopping(req, res) {
+  try {
+    const { walletAddress } = req.body;
+    if (!walletAddress) return error(res, "walletAddress is required", 400);
+
+    const result = await vendingService.finishShopping(req.params.id, walletAddress);
+    return success(res, result, "Shopping finished");
+  } catch (err) {
+    logger.error("finishShopping:", err.message);
+    return error(res, err.message, 400);
+  }
+}
+
+module.exports = { listMachines, getMachine, connectMachine, queueStatus, serveNext, finishShopping };

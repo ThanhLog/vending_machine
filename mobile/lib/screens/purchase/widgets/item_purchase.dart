@@ -99,6 +99,11 @@ class ItemPurchase extends StatelessWidget {
             product.isLocked ? '-' : product.price,
             style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
+          if (!product.isLocked && product.quantity > 0)
+            Text(
+              'Con: ${product.quantity}',
+              style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.w500),
+            ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,

@@ -50,6 +50,9 @@ void initTFT() {
   tft.fillScreen(ST77XX_BLACK);
 }
 
+// Forward declaration
+static void checkDeferredTransition();
+
 // ===== UI =====
 void drawUI() {
 
@@ -86,6 +89,9 @@ void drawUI() {
 
     return;
   }
+
+  // ── Check deferred transitions ─────────────────────
+  checkDeferredTransition();
 
   // ===== STATE MACHINE =====
   static UIState lastState = (UIState)-1;
@@ -128,12 +134,46 @@ void drawUI() {
 }
 
 
+static unsigned long processingEntered = 0;
+static UIState deferredState = IDLE;
+static bool hasDeferred = false;
+
 void changeState(UIState newState) {
+  // Min display time for PROCESSING: at least 2 seconds before allowing transition
+  if (currentState == PROCESSING && newState != PROCESSING) {
+    if (millis() - processingEntered < 2000) {
+      // Defer the transition
+      deferredState = newState;
+      hasDeferred = true;
+      Serial.printf("[TFT] Deferring state change to %d (will apply in %lu ms)\n",
+                    newState, 2000 - (millis() - processingEntered));
+      return;
+    }
+  }
+
+  if (newState == PROCESSING) {
+    processingEntered = millis();
+    hasDeferred = false;
+  }
+
   currentState = newState;
   startTime = millis();
-  // Reset idle timer khi vao trang thai IDLE
   if (newState == IDLE) {
     resetIdleTimer();
+  }
+}
+
+// Check and apply deferred state transitions (called from drawUI)
+static void checkDeferredTransition() {
+  if (!hasDeferred) return;
+  if (currentState != PROCESSING) {
+    hasDeferred = false;
+    return;
+  }
+  if (millis() - processingEntered >= 2000) {
+    hasDeferred = false;
+    Serial.printf("[TFT] Applying deferred state: %d\n", deferredState);
+    changeState(deferredState);
   }
 }
 

@@ -124,6 +124,21 @@ class ApiService {
     return body['data'];
   }
 
+  // ── Finish Shopping ───────────────────────────────────
+  Future<Map<String, dynamic>> finishShopping(
+    String machineId,
+    String walletAddress,
+  ) async {
+    final res = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.finishShopping(machineId)}'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'walletAddress': walletAddress}),
+    );
+    final body = json.decode(res.body);
+    if (body['success'] == false) throw Exception(body['message']);
+    return body['data'];
+  }
+
   // ── Wallet ───────────────────────────────────────────
   Future<double> getBalance(String address) async {
     final res = await _client.get(

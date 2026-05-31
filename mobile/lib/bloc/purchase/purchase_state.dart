@@ -13,6 +13,8 @@ class PurchaseState {
   final String? commandId;
   final DispenseStatus dispenseStatus;
   final String? dispenseError;
+  final bool showContinueDialog;
+  final String? walletAddress;
 
   const PurchaseState({
     this.isLoading = false,
@@ -25,6 +27,8 @@ class PurchaseState {
     this.commandId,
     this.dispenseStatus = DispenseStatus.none,
     this.dispenseError,
+    this.showContinueDialog = false,
+    this.walletAddress,
   });
 
   PurchaseState copyWith({
@@ -38,6 +42,8 @@ class PurchaseState {
     String? commandId,
     DispenseStatus? dispenseStatus,
     String? dispenseError,
+    bool? showContinueDialog,
+    String? walletAddress,
     bool clearError = false,
   }) {
     return PurchaseState(
@@ -51,6 +57,8 @@ class PurchaseState {
       commandId: commandId ?? this.commandId,
       dispenseStatus: dispenseStatus ?? this.dispenseStatus,
       dispenseError: dispenseError ?? this.dispenseError,
+      showContinueDialog: showContinueDialog ?? this.showContinueDialog,
+      walletAddress: walletAddress ?? this.walletAddress,
     );
   }
 }

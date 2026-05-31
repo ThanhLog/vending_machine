@@ -16,7 +16,7 @@
 #define HEARTBEAT_INTERVAL 30000 // ms
 
 // ===== MOTOR =====
-#define MOTOR_TIMEOUT 3000 // ms
+#define MOTOR_TIMEOUT 8000 // ms (tang thoi gian cho san pham roi)
 
 // ===== PURCHASE TIMEOUT =====
 #define PURCHASE_TIMEOUT 300000 // 5 phut - sau thoi gian nay auto skip luot mua

@@ -230,4 +230,33 @@ router.get("/:id/queue/status", ctrl.queueStatus);
  */
 router.post("/:id/serve-next", ctrl.serveNext);
 
+/**
+ * @swagger
+ * /api/vending/{id}/finish-shopping:
+ *   post:
+ *     summary: Kết thúc lượt mua sắm
+ *     tags: [Vending]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - walletAddress
+ *             properties:
+ *               walletAddress:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Kết thúc mua sắm thành công
+ */
+router.post("/:id/finish-shopping", ctrl.finishShopping);
+
 module.exports = router;

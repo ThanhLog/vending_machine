@@ -222,6 +222,21 @@ async function completeServing(machineId, queueId) {
   });
 }
 
+async function incrementOrderCounter(machineId) {
+  const ref = db.collection(MACHINES_COLLECTION).doc(machineId);
+  const doc = await ref.get();
+  if (!doc.exists) {
+    // Create machine with counter = 1
+    await ref.set({ orderCounter: 1, updatedAt: new Date().toISOString() });
+    return 1;
+  }
+  const data = doc.data();
+  const current = data.orderCounter || 0;
+  const next = current + 1;
+  await ref.update({ orderCounter: next, updatedAt: new Date().toISOString() });
+  return next;
+}
+
 async function expireQueueEntry(machineId, queueId) {
   const ref = db
     .collection(MACHINES_COLLECTION)
@@ -249,4 +264,5 @@ module.exports = {
   serveNext,
   completeServing,
   expireQueueEntry,
+  incrementOrderCounter,
 };

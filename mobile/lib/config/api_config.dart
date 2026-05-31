@@ -1,7 +1,7 @@
 class ApiConfig {
   // 👇 Đổi thành ngrok URL sau khi chạy: npx ngrok http 3000
   // Ví dụ: static const String baseUrl = 'https://xxxx-xxx-xxx.ngrok-free.app';
-  static const String baseUrl = 'https://qx7s1hlr-3000.asse.devtunnels.ms';
+  static const String baseUrl = 'https://apivendingmachine.thiephaoy.shop';
 
   // REST endpoints
   static const String authNonce = '/api/auth/nonce';
@@ -11,6 +11,7 @@ class ApiConfig {
   static String vendingConnect(String id) => '/api/vending/$id/connect';
   static String queueStatus(String id) => '/api/vending/$id/queue/status';
   static String serveNext(String id) => '/api/vending/$id/serve-next';
+  static String finishShopping(String id) => '/api/vending/$id/finish-shopping';
   static const String purchase = '/api/product/purchase';
   static String machineSlots(String id) => '/api/product/machine/$id';
   static String walletBalance(String address) => '/api/wallet/$address/balance';

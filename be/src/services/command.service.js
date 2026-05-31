@@ -4,12 +4,13 @@ const logger = require("../utils/logger");
 const MACHINES_COLLECTION = "vending_machines";
 const COMMANDS_COLLECTION = "commands";
 
-async function createCommand(machineId, { slot, orderId, productName, queueId }) {
+async function createCommand(machineId, { slot, orderId, productName, queueId, orderNumber }) {
   const command = {
     slot,
     orderId,
     productName,
     queueId,
+    orderNumber: orderNumber || 1,
     status: "pending",
     createdAt: new Date().toISOString(),
     startedAt: null,

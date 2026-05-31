@@ -4,6 +4,7 @@ class Product {
   final String price;
   final double priceETH;
   final String status; // available, sold, locked, empty, error
+  final int quantity;
 
   const Product({
     required this.slot,
@@ -11,6 +12,7 @@ class Product {
     required this.price,
     required this.priceETH,
     required this.status,
+    this.quantity = 1,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -20,10 +22,11 @@ class Product {
       price: json['price']?.toString() ?? '',
       priceETH: (json['priceETH'] as num?)?.toDouble() ?? 0.001,
       status: json['status']?.toString() ?? 'empty',
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
     );
   }
 
-  bool get isLocked => status == 'empty' || status == 'error' || status == 'locked';
+  bool get isLocked => status == 'empty' || status == 'error' || status == 'locked' || quantity <= 0;
 
   Map<String, dynamic> toJson() => {
         'slot': slot,
@@ -31,5 +34,6 @@ class Product {
         'price': price,
         'priceETH': priceETH,
         'status': status,
+        'quantity': quantity,
       };
 }

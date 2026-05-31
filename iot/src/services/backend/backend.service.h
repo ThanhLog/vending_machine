@@ -10,3 +10,5 @@ int getPendingSlot();
 int getPendingOrderNumber();
 void reportSuccess();
 void reportError(const String &msg);
+bool isMachineResting();
+const char *getMachineMode();
