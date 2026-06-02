@@ -3,14 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../bloc/queue/queue_cubit.dart';
 import '../../bloc/queue/queue_state.dart';
-import '../../services/wifi_service.dart';
+import '../../config/theme.dart';
 import '../purchase/purchase.dart';
 
 class VendingQueueLobby extends StatefulWidget {
-  final String machineId;
-  final String machineName;
-  final String machineSsid;
-  final String machinePassword;
+  final String machineId, machineName, machineSsid, machinePassword;
   final String? privateKey;
 
   const VendingQueueLobby({
@@ -31,428 +28,98 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
   bool _joined = false;
 
   @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
+  void dispose() { _audioPlayer.dispose(); super.dispose(); }
 
   Future<void> _playNotificationSound() async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
-    } catch (e) {
-      debugPrint('Sound error: $e');
-    }
+    try { await _audioPlayer.stop(); await _audioPlayer.play(AssetSource('sounds/notification.mp3')); }
+    catch (_) {}
   }
 
-  void _joinQueue() async {
-    // Join queue via cloud API - phone uses its own internet (4G/WiFi)
-    // ESP32 proximity is verified via GPS, not WiFi connection
+  void _joinQueue() {
     if (!mounted) return;
-
-    // Check login status before joining queue
-    final privateKey = widget.privateKey;
-    if (privateKey == null || privateKey.isEmpty) {
+    final pk = widget.privateKey;
+    if (pk == null || pk.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login first to join the queue'),
-          backgroundColor: Colors.red,
-        ),
-      );
+        const SnackBar(content: Text('Please login first'), backgroundColor: AppTheme.error));
       return;
     }
-
-    final queueCubit = context.read<QueueCubit>();
-    queueCubit.joinQueue(widget.machineId, privateKey);
+    context.read<QueueCubit>().joinQueue(widget.machineId, pk);
     setState(() => _joined = true);
-  }
-
-  void _showWifiDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Row(
-          children: [
-            Icon(Icons.wifi_off, color: Colors.redAccent),
-            SizedBox(width: 12),
-            Text('WiFi Required',
-                style: TextStyle(color: Colors.white, fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Please connect to the vending machine WiFi:',
-              style: TextStyle(color: Color(0xFF94A3B8)),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    widget.machineSsid,
-                    style: const TextStyle(
-                      color: Colors.cyanAccent,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  if (widget.machinePassword.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Password: ${widget.machinePassword}',
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Open your WiFi settings, connect to the machine, then try again.',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _joinQueue();
-            },
-            child: const Text('Try Again',
-                style: TextStyle(color: Colors.cyanAccent)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final sw = MediaQuery.of(context).size.width;
 
     return BlocConsumer<QueueCubit, QueueState>(
       listener: (context, state) {
-        // Play sound when it becomes our turn
-        if (state.isMyTurn && _joined) {
-          _playNotificationSound();
-        }
+        if (state.isMyTurn && _joined) _playNotificationSound();
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!), backgroundColor: Colors.red),
-          );
+            SnackBar(content: Text(state.errorMessage!), backgroundColor: AppTheme.error));
           context.read<QueueCubit>().clearError();
         }
       },
       builder: (context, state) {
         final isMyTurn = state.isMyTurn;
-        final queueNumber = state.queueNumber;
+        final qNum = state.queueNumber;
 
-        return Scaffold(
-          backgroundColor: const Color(0xFF0F172A),
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // ── HEADER ──────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32),
-                              onPressed: () {
-                                context.read<QueueCubit>().reset();
-                                Navigator.pop(context);
-                              },
-                              icon: const Icon(Icons.arrow_back, color: Color(0xFF94A3B8), size: 24),
-                            ),
-                            Expanded(
-                              child: Text(
-                                widget.machineName.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF94A3B8),
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+        return Container(
+          decoration: const BoxDecoration(gradient: AppTheme.gradDark),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // ── HEADER ──
+                    Row(children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: AppTheme.textSecondary),
+                        onPressed: () { context.read<QueueCubit>().reset(); Navigator.pop(context); },
                       ),
-                      // Status tag
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(widget.machineName.toUpperCase(),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 1))),
+                      // Status pill
                       GestureDetector(
-                        onTap: () {
-                          if (isMyTurn) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => Purchase(
-                                  machineId: widget.machineId,
-                                  privateKey: widget.privateKey,
-                                ),
-                              ),
-                            );
-                          }
-                        },
+                        onTap: () { if (isMyTurn) Navigator.push(context, MaterialPageRoute(builder: (_) => Purchase(machineId: widget.machineId, privateKey: widget.privateKey))); },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isMyTurn
-                                ? Colors.redAccent.withOpacity(0.14)
-                                : Colors.amber.withOpacity(0.14),
+                            color: isMyTurn ? AppTheme.accent.withOpacity(0.15) : AppTheme.warning.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isMyTurn ? Colors.redAccent : Colors.amberAccent,
-                              width: 1.5,
-                            ),
+                            border: Border.all(color: isMyTurn ? AppTheme.accent : AppTheme.warning, width: 1.5),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircleAvatar(
-                                radius: 4,
-                                backgroundColor: isMyTurn ? Colors.redAccent : Colors.amberAccent,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                isMyTurn ? 'YOUR TURN' : 'IN QUEUE',
-                                style: TextStyle(
-                                  color: isMyTurn ? Colors.redAccent : Colors.amberAccent,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Container(width: 8, height: 8,
+                              decoration: BoxDecoration(shape: BoxShape.circle,
+                                  color: isMyTurn ? AppTheme.accent : AppTheme.warning)),
+                            const SizedBox(width: 8),
+                            Text(isMyTurn ? 'YOUR TURN' : 'IN QUEUE',
+                              style: TextStyle(color: isMyTurn ? AppTheme.accent : AppTheme.warning,
+                                  fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 1)),
+                          ]),
                         ),
                       ),
-                    ],
-                  ),
+                    ]),
 
-                  // ── CENTER CONTENT ──────────────────
-                  if (!_joined && !state.isLoading)
-                    // Not joined yet
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.qr_code_scanner_rounded, size: 80, color: Colors.cyanAccent),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Connect to Machine',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'You will be placed in a virtual queue.',
-                          style: TextStyle(color: Color(0xFF94A3B8)),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                          onPressed: _joinQueue,
-                          icon: const Icon(Icons.cable),
-                          label: const Text('Join Queue'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.cyanAccent,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          ),
-                        ),
-                      ],
-                    )
-                  else if (state.isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (!isMyTurn)
-                    // Waiting in queue
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'SO THU TU CUA BAN',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.cyanAccent,
-                            letterSpacing: 3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Large queue number
-                        Text(
-                          queueNumber.toString().padLeft(2, '0'),
-                          style: TextStyle(
-                            fontSize: screenWidth > 600 ? 140 : 100,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Phia truoc: ${state.peopleAhead} nguoi',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '~${state.estimatedWaitMin.toStringAsFixed(1)} phut cho',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: 240,
-                          child: LinearProgressIndicator(
-                            backgroundColor: Colors.white10,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    // It's our turn
-                    Column(
-                      children: [
-                        const Icon(Icons.check_circle_outline_rounded, size: 80, color: Colors.redAccent),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'IT\'S YOUR TURN!',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'QUEUE NUMBER: ${queueNumber.toString().padLeft(2, '0')}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => Purchase(
-                                  machineId: widget.machineId,
-                                  privateKey: widget.privateKey,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.redAccent.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Text(
-                              'TAP TO SELECT ITEMS',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // ── CENTER ──
+                    if (!_joined && !state.isLoading)
+                      _buildJoinPrompt()
+                    else if (state.isLoading)
+                      const Center(child: CircularProgressIndicator(color: AppTheme.accent))
+                    else if (!isMyTurn)
+                      _buildWaiting(state, sw)
+                    else
+                      _buildYourTurn(state, sw),
 
-                  // ── FOOTER ──────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
-                    ),
-                    child: !isMyTurn
-                        ? Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildStatusItem('Your Position', '#$queueNumber', Colors.amberAccent),
-                                  Container(width: 1, height: 35, color: Colors.white10),
-                                  _buildStatusItem('Ahead of You', '${state.peopleAhead} people', Colors.white),
-                                  Container(width: 1, height: 35, color: Colors.white10),
-                                  _buildStatusItem('Est. Wait', '~${state.estimatedWaitMin.toStringAsFixed(1)} min', Colors.tealAccent),
-                                ],
-                              ),
-                              const Divider(height: 40, color: Colors.white10, thickness: 1),
-                              const Row(
-                                children: [
-                                  Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF94A3B8), size: 24),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Text(
-                                      'Scan QR code on the machine to track your queue number directly on your phone.',
-                                      style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8), height: 1.4),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              Icon(Icons.timer_outlined, color: Colors.amber[400], size: 28),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Note: Your turn will auto-expire after 2 minutes if no item is selected.',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.amber[200],
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
+                    // ── FOOTER ──
+                    _buildFooter(state, isMyTurn),
+                  ],
+                ),
               ),
             ),
           ),
@@ -461,13 +128,111 @@ class _VendingQueueLobbyState extends State<VendingQueueLobby> {
     );
   }
 
-  Widget _buildStatusItem(String label, String value, Color valueColor) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
-        const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: valueColor)),
-      ],
+  Widget _buildJoinPrompt() {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 80, height: 80,
+        decoration: BoxDecoration(shape: BoxShape.circle,
+          gradient: AppTheme.gradAccent,
+          boxShadow: AppTheme.glow(AppTheme.accent, blur: 30)),
+        child: const Icon(Icons.qr_code_scanner_rounded, size: 40, color: AppTheme.bg),
+      ),
+      const SizedBox(height: 24),
+      const Text('Connect to Machine', style: AppTheme.h2),
+      const SizedBox(height: 8),
+      const Text('Join virtual queue to purchase', style: AppTheme.body),
+      const SizedBox(height: 32),
+      SizedBox(width: 220, height: 52,
+        child: ElevatedButton.icon(
+          onPressed: _joinQueue,
+          icon: const Icon(Icons.cable, size: 20),
+          label: const Text('JOIN QUEUE', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 2, fontSize: 14)),
+          style: AppTheme.primaryBtn,
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildWaiting(QueueState state, double sw) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      const Text('YOUR NUMBER', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.accent, letterSpacing: 4)),
+      const SizedBox(height: 16),
+      Text(state.queueNumber.toString().padLeft(2, '0'),
+        style: TextStyle(fontSize: sw > 600 ? 120 : 90, fontWeight: FontWeight.w900, color: Colors.white, height: 1.0)),
+      const SizedBox(height: 12),
+      Text('${state.peopleAhead} ahead of you', style: AppTheme.body.copyWith(fontSize: 16)),
+      Text('~${state.estimatedWaitMin.toStringAsFixed(1)} min wait', style: AppTheme.caption),
+      const SizedBox(height: 24),
+      SizedBox(width: 200,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            backgroundColor: AppTheme.cardBorder,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
+            minHeight: 4,
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildYourTurn(QueueState state, double sw) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 80, height: 80,
+        decoration: BoxDecoration(shape: BoxShape.circle,
+          gradient: const LinearGradient(colors: [AppTheme.accent3, AppTheme.accent]),
+          boxShadow: AppTheme.glow(AppTheme.accent3, blur: 30)),
+        child: const Icon(Icons.check_circle_outline, size: 40, color: AppTheme.bg),
+      ),
+      const SizedBox(height: 24),
+      ShaderMask(
+        shaderCallback: (b) => const LinearGradient(colors: [AppTheme.accent3, AppTheme.accent]).createShader(b),
+        child: const Text('YOUR TURN!', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 4)),
+      ),
+      const SizedBox(height: 8),
+      Text('NUMBER: ${state.queueNumber.toString().padLeft(2, '0')}', style: AppTheme.body.copyWith(fontSize: 16)),
+      const SizedBox(height: 32),
+      GestureDetector(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Purchase(machineId: widget.machineId, privateKey: widget.privateKey))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+          decoration: BoxDecoration(
+            gradient: AppTheme.gradAccent,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AppTheme.glow(AppTheme.accent, blur: 25),
+          ),
+          child: const Text('TAP TO SELECT ITEMS',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.bg, letterSpacing: 2)),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildFooter(QueueState state, bool isMyTurn) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.cardDecoration(borderColor: AppTheme.cardBorder.withOpacity(0.5)),
+      child: isMyTurn
+          ? Row(children: [
+              Icon(Icons.timer_outlined, color: AppTheme.warning, size: 24),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Auto-expires after 2 min', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
+            ])
+          : Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              _stat('Position', '#${state.queueNumber}', AppTheme.accent),
+              _stat('Ahead', '${state.peopleAhead} ppl', AppTheme.textPrimary),
+              _stat('Est.', '~${state.estimatedWaitMin.toStringAsFixed(1)} min', AppTheme.accent3),
+            ]),
     );
+  }
+
+  Widget _stat(String label, String value, Color color) {
+    return Column(children: [
+      Text(label, style: AppTheme.caption),
+      const SizedBox(height: 4),
+      Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+    ]);
   }
 }

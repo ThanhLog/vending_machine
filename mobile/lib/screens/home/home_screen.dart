@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/home_cubit/home_cubit.dart';
 import '../../bloc/home_cubit/home_sate.dart';
+import '../../config/theme.dart';
 import 'widgets/header_home.dart';
 import 'widgets/banner_home.dart';
 import 'widgets/product_tredding.dart';
@@ -33,7 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final isLoggedIn =
         widget.privateKey != null && widget.privateKey!.isNotEmpty;
 
-    return Scaffold(
+    return Container(
+      decoration: const BoxDecoration(gradient: AppTheme.gradDark),
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: HeaderHome(context: context, isLoggedIn: isLoggedIn),
       body: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
@@ -56,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+    ),
     );
   }
 }

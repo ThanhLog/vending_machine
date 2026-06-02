@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Vending Machine Body -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M34,30 L74,30 C76,30 78,32 78,34 L78,78 C78,80 76,82 74,82 L34,82 C32,82 30,80 30,78 L30,34 C30,32 32,30 34,30 Z"/>
+    <!-- Screen -->
+    <path
+        android:fillColor="#060B1A"
+        android:pathData="M38,36 L70,36 C71,36 72,37 72,38 L72,52 C72,53 71,54 70,54 L38,54 C37,54 36,53 36,52 L36,38 C36,37 37,36 38,36 Z"/>
+    <!-- Slot 1 -->
+    <path
+        android:fillColor="#060B1A"
+        android:pathData="M38,58 L48,58 L48,68 L38,68 Z"/>
+    <!-- Slot 2 -->
+    <path
+        android:fillColor="#060B1A"
+        android:pathData="M52,58 L62,58 L62,68 L52,68 Z"/>
+    <!-- Slot 3 -->
+    <path
+        android:fillColor="#060B1A"
+        android:pathData="M66,58 L72,58 L72,68 L66,68 Z"/>
+    <!-- Product drop area -->
+    <path
+        android:fillColor="#00D4FF"
+        android:fillAlpha="0.3"
+        android:pathData="M36,72 L72,72 L72,78 L36,78 Z"/>
+    <!-- "V" on screen -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M48,40 L52,49 L56,40 L58,40 L53,50 L51,50 L46,40 Z"/>
+</vector>

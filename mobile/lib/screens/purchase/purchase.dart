@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/purchase/purchase_cubit.dart';
 import '../../bloc/purchase/purchase_state.dart';
+import '../../config/theme.dart';
 import 'widgets/item_purchase.dart';
 
 class Purchase extends StatefulWidget {
@@ -152,7 +153,12 @@ class _PurchaseState extends State<Purchase> {
       },
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Select Product')),
+          backgroundColor: AppTheme.bg,
+          appBar: AppBar(
+            title: const Text('Select Product', style: TextStyle(color: AppTheme.textPrimary)),
+            backgroundColor: AppTheme.surface,
+            iconTheme: const IconThemeData(color: AppTheme.accent),
+          ),
           body: Column(
             children: [
               // ── Dispense status banner ─────────────────
