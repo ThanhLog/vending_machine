@@ -20,6 +20,10 @@ async function getMachineById(machineId) {
   return doc.exists ? { id: doc.id, ...doc.data() } : null;
 }
 
+async function deleteMachine(machineId) {
+  await db.collection(MACHINES_COLLECTION).doc(machineId).delete();
+}
+
 async function upsertMachine(machineId, data) {
   const ref = db.collection(MACHINES_COLLECTION).doc(machineId);
   await ref.set({ ...data, updatedAt: new Date().toISOString() }, { merge: true });
@@ -266,6 +270,7 @@ module.exports = {
   getAllMachines,
   getMachineById,
   upsertMachine,
+  deleteMachine,
   getSlots,
   getSlot,
   updateSlot,

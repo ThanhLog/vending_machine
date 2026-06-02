@@ -93,6 +93,81 @@ router.delete("/machine/:id/slots/:slot", checkAuth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// ── Device Management APIs ────────────────────────────
+// ═══════════════════════════════════════════════════════
+
+// ── API: Get all devices ──────────────────────────────
+router.get("/devices", checkAuth, async (req, res) => {
+  try {
+    const devices = await firebaseService.getAllMachines();
+    return success(res, devices);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Create device ────────────────────────────────
+router.post("/devices", checkAuth, async (req, res) => {
+  try {
+    const { id, name, location, latitude, longitude, isOnline, temperature, mode, ssid, password } = req.body;
+    if (!id) return error(res, "Device ID is required", 400);
+    if (!name) return error(res, "Device name is required", 400);
+
+    const device = await firebaseService.upsertMachine(id, {
+      name,
+      location: location || "",
+      latitude: latitude != null ? parseFloat(latitude) : 21.0288,
+      longitude: longitude != null ? parseFloat(longitude) : 105.854,
+      isOnline: isOnline ?? true,
+      temperature: temperature != null ? parseFloat(temperature) : 5.0,
+      products: 0,
+      mode: mode || "normal",
+      ssid: ssid || "Vending_Setup",
+      password: password || "12345678",
+      createdAt: new Date().toISOString(),
+    });
+    return success(res, device, "Device created", 201);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Update device ────────────────────────────────
+router.put("/devices/:id", checkAuth, async (req, res) => {
+  try {
+    const { id, name, location, latitude, longitude, isOnline, temperature, mode, ssid, password } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (location !== undefined) updateData.location = location;
+    if (latitude !== undefined) updateData.latitude = parseFloat(latitude);
+    if (longitude !== undefined) updateData.longitude = parseFloat(longitude);
+    if (isOnline !== undefined) updateData.isOnline = isOnline;
+    if (temperature !== undefined) updateData.temperature = parseFloat(temperature);
+    if (mode !== undefined) updateData.mode = mode;
+    if (ssid !== undefined) updateData.ssid = ssid;
+    if (password !== undefined) updateData.password = password;
+
+    const device = await firebaseService.upsertMachine(req.params.id, {
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+    });
+    return success(res, device, "Device updated");
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Delete device ────────────────────────────────
+router.delete("/devices/:id", checkAuth, async (req, res) => {
+  try {
+    await firebaseService.deleteMachine(req.params.id);
+    return success(res, null, "Device deleted");
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
 // ── Login page ──────────────────────────────────────
 function loginPage() {
   return `<!doctype html>

@@ -11,12 +11,14 @@
     .header h1{font-size:20px;color:#06b6d4}
     .header .logout{color:#94a3b8;text-decoration:none;font-size:14px;padding:8px 16px;border:1px solid #334155;border-radius:6px}
     .header .logout:hover{background:#334155}
-    .container{max-width:800px;margin:0 auto;padding:24px}
+    .container{max-width:900px;margin:0 auto;padding:24px}
     .card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #334155}
     .card h2{font-size:18px;margin-bottom:16px;color:#06b6d4}
     .form-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
     .form-row input, .form-row select{flex:1;min-width:120px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;font-size:14px}
     .form-row select{appearance:auto}
+    .form-row label{flex:1;min-width:120px;font-size:13px;color:#94a3b8}
+    .form-row label input, .form-row label select{width:100%;margin-top:4px}
     .btn{padding:10px 20px;border:0;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;transition:all .2s}
     .btn-add{background:#06b6d4;color:#000}
     .btn-add:hover{background:#0891b2}
@@ -28,6 +30,9 @@
     .btn-avail:hover{background:#059669}
     .btn-save{background:#8b5cf6;color:#fff;padding:12px 24px}
     .btn-save:hover{background:#7c3aed}
+    .btn-gps{background:#10b981;color:#fff;padding:8px 16px;font-size:13px}
+    .btn-gps:hover{background:#059669}
+    .btn-gps:disabled{background:#4b5563;color:#9ca3af;cursor:not-allowed}
     table{width:100%;border-collapse:collapse}
     th,td{padding:12px 14px;text-align:left;border-bottom:1px solid #334155;font-size:14px}
     th{color:#94a3b8;font-weight:600;font-size:13px;text-transform:uppercase}
@@ -35,6 +40,9 @@
     .badge-avail{background:#10b98122;color:#10b981}
     .badge-sold{background:#ef444422;color:#ef4444}
     .badge-unavail{background:#6b728022;color:#6b7280}
+    .badge-online{background:#10b98122;color:#10b981}
+    .badge-offline{background:#ef444422;color:#ef4444}
+    .badge-maintenance{background:#f59e0b22;color:#f59e0b}
     .actions{display:flex;gap:6px}
     .empty{text-align:center;color:#64748b;padding:40px}
     .alert{padding:12px 16px;border-radius:8px;margin-bottom:12px;font-size:14px;display:none}
@@ -44,9 +52,29 @@
     .note{color:#94a3b8;font-size:12px;margin-top:4px}
     .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center}
     .modal.active{display:flex}
-    .modal-content{background:#1e293b;padding:24px;border-radius:12px;width:420px;max-width:90vw}
+    .modal-content{background:#1e293b;padding:24px;border-radius:12px;width:500px;max-width:90vw;max-height:90vh;overflow-y:auto}
     .modal-content h3{font-size:18px;margin-bottom:16px;color:#06b6d4}
     #machineSelect{width:100%;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;font-size:16px;margin-bottom:16px}
+    /* Tabs */
+    .tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #334155}
+    .tab{padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+    .tab:hover{color:#e2e8f0}
+    .tab.active{color:#06b6d4;border-bottom-color:#06b6d4}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+    /* GPS status */
+    .gps-row{display:flex;gap:12px;align-items:flex-end}
+    .gps-row .form-row{flex:1;margin-bottom:0}
+    .gps-info{font-size:12px;color:#10b981;margin-top:4px}
+    .gps-error{font-size:12px;color:#ef4444;margin-top:4px}
+    .coords{font-family:monospace;color:#06b6d4}
+    .text-small{font-size:12px;color:#94a3b8}
+    .switch{position:relative;display:inline-block;width:44px;height:24px}
+    .switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#334155;transition:.3s;border-radius:24px}
+    .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:#fff;transition:.3s;border-radius:50%}
+    input:checked+.slider{background-color:#10b981}
+    input:checked+.slider:before{transform:translateX(20px)}
   </style>
 </head>
 <body>
@@ -56,27 +84,53 @@
   </div>
 
   <div class="container">
-    <!-- Machine Selector -->
-    <div class="card">
-      <h2>📋 Chon May</h2>
-      <select id="machineSelect" onchange="onMachineChange()">
-        <option value="">-- Chon may ban hang --</option>
-      </select>
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('products')">📦 San Pham</div>
+      <div class="tab" onclick="switchTab('devices')">🖥️ Thiet Bi</div>
     </div>
 
-    <!-- Product List -->
-    <div class="card" id="productCard" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0">📦 San Pham</h2>
-        <button class="btn btn-add" onclick="showAddModal()">+ Them San Pham</button>
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- Products Tab -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="tab-products">
+      <!-- Machine Selector -->
+      <div class="card">
+        <h2>📋 Chon May</h2>
+        <select id="machineSelect" onchange="onMachineChange()">
+          <option value="">-- Chon may ban hang --</option>
+        </select>
       </div>
-      <div id="alertSuccess" class="alert alert-success"></div>
-      <div id="alertError" class="alert alert-error"></div>
-      <div id="productTable"></div>
+
+      <!-- Product List -->
+      <div class="card" id="productCard" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">📦 San Pham</h2>
+          <button class="btn btn-add" onclick="showAddModal()">+ Them San Pham</button>
+        </div>
+        <div id="alertSuccess" class="alert alert-success"></div>
+        <div id="alertError" class="alert alert-error"></div>
+        <div id="productTable"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- Devices Tab -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-devices">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">🖥️ Danh Sach Thiet Bi</h2>
+          <button class="btn btn-add" onclick="showDeviceModal()">+ Them Thiet Bi</button>
+        </div>
+        <div id="deviceAlertSuccess" class="alert alert-success"></div>
+        <div id="deviceAlertError" class="alert alert-error"></div>
+        <div id="deviceTable"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Add/Edit Modal -->
+  <!-- Product Add/Edit Modal -->
   <div class="modal" id="productModal">
     <div class="modal-content">
       <h3 id="modalTitle">Them San Pham Moi</h3>
@@ -105,12 +159,79 @@
     </div>
   </div>
 
+  <!-- Device Add/Edit Modal -->
+  <div class="modal" id="deviceModal">
+    <div class="modal-content">
+      <h3 id="deviceModalTitle">Them Thiet Bi Moi</h3>
+      <input type="hidden" id="editDeviceId">
+      <div class="form-row">
+        <input type="text" id="devId" placeholder="Ma thiet bi (VD: machine_01)">
+        <input type="text" id="devName" placeholder="Ten thiet bi">
+      </div>
+      <div class="form-row">
+        <input type="text" id="devLocation" placeholder="Dia chi (VD: 123 Nguyen Hue, Q1)">
+      </div>
+      <!-- GPS Row -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:13px;color:#94a3b8">📍 Vi tri (Toa do GPS)</span>
+          <button class="btn btn-gps" id="btnGps" onclick="getGpsLocation()">📡 Lay vi tri hien tai</button>
+        </div>
+        <div class="form-row">
+          <input type="number" id="devLat" placeholder="Vi do (Latitude)" step="any" style="flex:1">
+          <input type="number" id="devLng" placeholder="Kinh do (Longitude)" step="any" style="flex:1">
+        </div>
+        <div id="gpsStatus" class="gps-info" style="display:none"></div>
+        <div id="gpsError" class="gps-error" style="display:none"></div>
+      </div>
+      <div class="form-row">
+        <input type="number" id="devTemp" placeholder="Nhiet do (°C)" step="0.1" min="-50" max="100" value="5.0" style="flex:0.5">
+        <select id="devMode" style="flex:0.5">
+          <option value="normal">Normal - Hoat dong</option>
+          <option value="maintenance">Maintenance - Bao tri</option>
+          <option value="rest">Rest - Tam nghi</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input type="text" id="devSsid" placeholder="WiFi SSID (mac dinh: Vending_Setup)">
+        <input type="text" id="devPassword" placeholder="WiFi Password (mac dinh: 12345678)">
+      </div>
+      <div class="form-row" style="align-items:center">
+        <label style="display:flex;align-items:center;gap:10px;color:#fff;font-size:14px">
+          <span>Online:</span>
+          <label class="switch">
+            <input type="checkbox" id="devOnline" checked>
+            <span class="slider"></span>
+          </label>
+        </label>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px">
+        <button class="btn btn-save" onclick="saveDevice()" style="flex:1">💾 Luu</button>
+        <button class="btn" onclick="closeDeviceModal()" style="flex:1;background:#334155;color:#fff">Huy</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const ADMIN_PASS = new URLSearchParams(location.search).get('token') || '';
     const BASE = '/api/admin';
     let currentMachine = '';
 
+    // ═══════════════════════════════════════════════════
+    // ── Tab switching ─────────────────────────────────
+    // ═══════════════════════════════════════════════════
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'products' && i === 0) || (tab === 'devices' && i === 1));
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'devices') loadDevices();
+    }
+
+    // ═══════════════════════════════════════════════════
     // ── Load machines ─────────────────────────────────
+    // ═══════════════════════════════════════════════════
     async function loadMachines() {
       try {
         const res = await fetch(`${BASE}/machines`, {
@@ -119,6 +240,7 @@
         const data = await res.json();
         if (!data.success) return;
         const sel = document.getElementById('machineSelect');
+        sel.innerHTML = '<option value="">-- Chon may ban hang --</option>';
         data.data.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.id;
@@ -277,7 +399,254 @@
       }
     }
 
-    // ── Alert ─────────────────────────────────────────
+    // ═══════════════════════════════════════════════════
+    // ── Device Management ─────────────────────────────
+    // ═══════════════════════════════════════════════════
+
+    // ── GPS: Get current position from browser ────────
+    function getGpsLocation() {
+      const btnGps = document.getElementById('btnGps');
+      const gpsStatus = document.getElementById('gpsStatus');
+      const gpsError = document.getElementById('gpsError');
+
+      if (!navigator.geolocation) {
+        gpsError.style.display = 'block';
+        gpsError.textContent = 'Trinh duyet khong ho tro dinh vi GPS';
+        return;
+      }
+
+      btnGps.disabled = true;
+      btnGps.textContent = '⏳ Dang lay vi tri...';
+      gpsStatus.style.display = 'none';
+      gpsError.style.display = 'none';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('devLat').value = pos.coords.latitude;
+          document.getElementById('devLng').value = pos.coords.longitude;
+          gpsStatus.style.display = 'block';
+          gpsStatus.innerHTML = `✅ Da lay vi tri: <span class="coords">${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}</span> (do chinh xac: ${pos.coords.accuracy.toFixed(0)}m)`;
+          btnGps.disabled = false;
+          btnGps.textContent = '📡 Lay vi tri hien tai';
+        },
+        (err) => {
+          gpsError.style.display = 'block';
+          switch(err.code) {
+            case err.PERMISSION_DENIED:
+              gpsError.textContent = '❌ Quyen truy cap vi tri bi tu choi. Vui long cap quyen GPS trong trinh duyet.';
+              break;
+            case err.POSITION_UNAVAILABLE:
+              gpsError.textContent = '❌ Khong the xac dinh vi tri. Thu lai sau.';
+              break;
+            case err.TIMEOUT:
+              gpsError.textContent = '❌ Het thoi gian cho lay vi tri. Thu lai.';
+              break;
+            default:
+              gpsError.textContent = '❌ Loi lay vi tri: ' + err.message;
+          }
+          btnGps.disabled = false;
+          btnGps.textContent = '📡 Lay vi tri hien tai';
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    // ── Load devices ──────────────────────────────────
+    async function loadDevices() {
+      try {
+        const res = await fetch(`${BASE}/devices`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        renderDeviceTable(data.data || []);
+        // Also refresh the machine dropdown for products tab
+        await loadMachines();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Render device table ───────────────────────────
+    function renderDeviceTable(devices) {
+      const container = document.getElementById('deviceTable');
+      if (!devices.length) {
+        container.innerHTML = '<div class="empty">Chua co thiet bi nao. Bam "Them Thiet Bi" de them moi.</div>';
+        return;
+      }
+
+      let html = `<table>
+        <thead><tr>
+          <th>Ma TB</th><th>Ten</th><th>Dia Chi</th><th>Vi Tri</th><th>Nhiet Do</th><th>Che Do</th><th>Online</th><th></th>
+        </tr></thead><tbody>`;
+
+      devices.forEach(d => {
+        const modeClass = d.mode === 'maintenance' ? 'badge-maintenance' :
+                          d.mode === 'rest' ? 'badge-unavail' : 'badge-online';
+        const modeText = d.mode === 'maintenance' ? 'Bao tri' :
+                         d.mode === 'rest' ? 'Nghi' : 'Hoat dong';
+        const onlineClass = d.isOnline ? 'badge-online' : 'badge-offline';
+        const onlineText = d.isOnline ? 'Online' : 'Offline';
+        const lat = d.latitude != null ? Number(d.latitude).toFixed(4) : '21.0288';
+        const lng = d.longitude != null ? Number(d.longitude).toFixed(4) : '105.854';
+
+        html += `<tr>
+          <td><span class="slot-badge">${d.id}</span></td>
+          <td><b>${d.name || '(chua co ten)'}</b></td>
+          <td><span class="text-small">${d.location || '-'}</span></td>
+          <td><span class="coords">${lat}, ${lng}</span></td>
+          <td>${d.temperature != null ? d.temperature + '°C' : '5.0°C'}</td>
+          <td><span class="badge ${modeClass}">${modeText}</span></td>
+          <td><span class="badge ${onlineClass}">${onlineText}</span></td>
+          <td class="actions">
+            <button class="btn btn-edit" style="padding:6px 12px;font-size:12px" onclick="editDevice('${d.id}')">Sua</button>
+            <button class="btn btn-del" style="padding:6px 12px;font-size:12px" onclick="deleteDevice('${d.id}','${(d.name||'').replace(/'/g,"\\'")}')">Xoa</button>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // ── Show device modal (add) ───────────────────────
+    function showDeviceModal() {
+      document.getElementById('deviceModalTitle').textContent = 'Them Thiet Bi Moi';
+      document.getElementById('editDeviceId').value = '';
+      document.getElementById('devId').value = '';
+      document.getElementById('devId').disabled = false;
+      document.getElementById('devName').value = '';
+      document.getElementById('devLocation').value = '';
+      document.getElementById('devLat').value = '';
+      document.getElementById('devLng').value = '';
+      document.getElementById('devTemp').value = '5.0';
+      document.getElementById('devMode').value = 'normal';
+      document.getElementById('devSsid').value = '';
+      document.getElementById('devPassword').value = '';
+      document.getElementById('devOnline').checked = true;
+      document.getElementById('gpsStatus').style.display = 'none';
+      document.getElementById('gpsError').style.display = 'none';
+      document.getElementById('deviceModal').classList.add('active');
+    }
+
+    // ── Edit device ───────────────────────────────────
+    async function editDevice(deviceId) {
+      try {
+        const res = await fetch(`${BASE}/devices`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        const device = (data.data || []).find(d => d.id === deviceId);
+        if (!device) return showDeviceAlert('Khong tim thay thiet bi!', 'error');
+
+        document.getElementById('deviceModalTitle').textContent = 'Sua Thiet Bi';
+        document.getElementById('editDeviceId').value = deviceId;
+        document.getElementById('devId').value = device.id;
+        document.getElementById('devId').disabled = true;
+        document.getElementById('devName').value = device.name || '';
+        document.getElementById('devLocation').value = device.location || '';
+        document.getElementById('devLat').value = device.latitude != null ? device.latitude : '';
+        document.getElementById('devLng').value = device.longitude != null ? device.longitude : '';
+        document.getElementById('devTemp').value = device.temperature != null ? device.temperature : 5.0;
+        document.getElementById('devMode').value = device.mode || 'normal';
+        document.getElementById('devSsid').value = device.ssid || '';
+        document.getElementById('devPassword').value = device.password || '';
+        document.getElementById('devOnline').checked = device.isOnline === true;
+        document.getElementById('gpsStatus').style.display = 'none';
+        document.getElementById('gpsError').style.display = 'none';
+        document.getElementById('deviceModal').classList.add('active');
+      } catch (e) {
+        showDeviceAlert('Loi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Close device modal ────────────────────────────
+    function closeDeviceModal() {
+      document.getElementById('deviceModal').classList.remove('active');
+    }
+
+    // ── Save device ───────────────────────────────────
+    async function saveDevice() {
+      const editId = document.getElementById('editDeviceId').value;
+      const id = document.getElementById('devId').value.trim();
+      const name = document.getElementById('devName').value.trim();
+      const location = document.getElementById('devLocation').value.trim();
+      const latitude = document.getElementById('devLat').value;
+      const longitude = document.getElementById('devLng').value;
+      const temperature = document.getElementById('devTemp').value;
+      const mode = document.getElementById('devMode').value;
+      const ssid = document.getElementById('devSsid').value.trim();
+      const password = document.getElementById('devPassword').value.trim();
+      const isOnline = document.getElementById('devOnline').checked;
+
+      if (!id) return showDeviceAlert('Vui long nhap ma thiet bi!', 'error');
+      if (!name) return showDeviceAlert('Vui long nhap ten thiet bi!', 'error');
+
+      const body = { id, name, location, temperature, mode, ssid, password, isOnline };
+      if (latitude) body.latitude = parseFloat(latitude);
+      if (longitude) body.longitude = parseFloat(longitude);
+
+      const isEdit = !!editId;
+      const url = isEdit ? `${BASE}/devices/${editId}` : `${BASE}/devices`;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ADMIN_PASS}`
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showDeviceAlert(`Da ${isEdit ? 'cap nhat' : 'them'} thiet bi "${name}"!`, 'success');
+          closeDeviceModal();
+          await loadDevices();
+        } else {
+          showDeviceAlert(data.message || 'Loi!', 'error');
+        }
+      } catch (e) {
+        showDeviceAlert('Loi ket noi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Delete device ─────────────────────────────────
+    async function deleteDevice(deviceId, deviceName) {
+      if (!confirm(`Ban co chac chan muon xoa thiet bi "${deviceName}" (${deviceId})?\n\nLuu y: Thao tac nay khong the hoan tac.`)) return;
+
+      try {
+        const res = await fetch(`${BASE}/devices/${deviceId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          showDeviceAlert(`Da xoa thiet bi "${deviceName}"!`, 'success');
+          await loadDevices();
+        } else {
+          showDeviceAlert(data.message || 'Loi!', 'error');
+        }
+      } catch (e) {
+        showDeviceAlert('Loi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Device alert ──────────────────────────────────
+    function showDeviceAlert(msg, type) {
+      const el = document.getElementById(type === 'error' ? 'deviceAlertError' : 'deviceAlertSuccess');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ── Shared Alert ──────────────────────────────────
+    // ═══════════════════════════════════════════════════
     function showAlert(msg, type) {
       const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
       el.textContent = msg;
@@ -287,6 +656,14 @@
 
     // ── Init ──────────────────────────────────────────
     loadMachines();
+
+    // ── Close modals on overlay click ─────────────────
+    document.getElementById('productModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+    document.getElementById('deviceModal').addEventListener('click', function(e) {
+      if (e.target === this) closeDeviceModal();
+    });
   </script>
 </body>
 </html>
