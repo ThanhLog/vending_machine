@@ -26,7 +26,6 @@
 ![Platform](https://img.shields.io/badge/IoT-ESP32-orange)
 ![Mobile](https://img.shields.io/badge/Mobile-Flutter-blue)
 
-**Đồ án cuối khóa môn Công nghệ Blockchain**
 
 </div>
 
@@ -37,7 +36,7 @@
 1. [Tổng quan dự án](#tổng-quan-dự-án)
 2. [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
 3. [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-4. [🔑 LUỒNG HOẠT ĐỘNG BLOCKCHAIN (CHI TIẾT)](#-luồng-hoạt-động-blockchain-chi-tiết)
+4. [LUỒNG HOẠT ĐỘNG BLOCKCHAIN (CHI TIẾT)](#-luồng-hoạt-động-blockchain-chi-tiết)
 5. [Luồng hoạt động toàn hệ thống](#luồng-hoạt-động-toàn-hệ-thống)
 6. [Cấu trúc thư mục](#cấu-trúc-thư-mục)
 7. [Cài đặt và chạy](#cài-đặt-và-chạy)
