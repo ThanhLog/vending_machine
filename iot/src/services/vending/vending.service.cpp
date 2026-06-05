@@ -65,9 +65,9 @@ bool executeRemoteCommand(int slot, int orderNumber, const char *commandId) {
 void updateVending() {
   if (!isProcessing) return;
 
-  // Run motor for MOTOR_TIMEOUT ms, then auto-success
-  if (millis() - motorStartTime >= MOTOR_TIMEOUT) {
-    Serial.println("[Vending] Motor timeout → SUCCESS");
+  // Run motor for 1 calibrated revolution, then auto-success.
+  if (millis() - motorStartTime >= MOTOR_ONE_REV_MS) {
+    Serial.println("[Vending] Motor 1 revolution complete -> SUCCESS");
     finishSuccess();
   }
 }

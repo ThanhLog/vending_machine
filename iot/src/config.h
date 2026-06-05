@@ -16,7 +16,9 @@
 #define HEARTBEAT_INTERVAL 10000 // ms (10s - dong bo nhanh hon)
 
 // ===== MOTOR =====
-#define MOTOR_TIMEOUT 3000 // ms (3 giay - khong dung IR)
+// Thoi gian de motor quay 1 vong. Can hieu chuan theo RPM/tai thuc te.
+// Cong thuc tham khao: MOTOR_ONE_REV_MS = 60000 / RPM
+#define MOTOR_ONE_REV_MS 3000 // ms (1 vong voi motor khoang 20 RPM)
 
 // ===== PURCHASE TIMEOUT =====
 #define PURCHASE_TIMEOUT 180000 // 3 phut - BE quan ly countdown, ESP chi fallback
