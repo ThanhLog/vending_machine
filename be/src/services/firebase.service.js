@@ -267,6 +267,44 @@ async function expireQueueEntry(machineId, queueId) {
   });
 }
 
+// ---------- Queue Management ----------
+
+async function getMachineQueue(machineId) {
+  const queueRef = db
+    .collection(MACHINES_COLLECTION)
+    .doc(machineId)
+    .collection(QUEUE_COLLECTION);
+
+  const snapshot = await queueRef.get();
+  const entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  // Separate serving vs waiting, sort appropriately
+  const serving = entries.filter((e) => e.status === "serving");
+  const waiting = entries
+    .filter((e) => e.status === "waiting")
+    .sort((a, b) => {
+      const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+      const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+      return timeA - timeB;
+    });
+
+  return { serving: serving[0] || null, waiting, total: entries.length };
+}
+
+async function removeFromQueue(machineId, queueId) {
+  const ref = db
+    .collection(MACHINES_COLLECTION)
+    .doc(machineId)
+    .collection(QUEUE_COLLECTION)
+    .doc(queueId);
+
+  await ref.update({
+    status: "cancelled",
+    cancelledAt: new Date().toISOString(),
+    cancelledBy: "admin",
+  });
+}
+
 // ---------- Orders ----------
 
 async function getOrders({ machineId, status, page, limit } = {}) {
@@ -359,4 +397,6 @@ module.exports = {
   getOrders,
   getOrderStats,
   updateOrderStatus,
+  getMachineQueue,
+  removeFromQueue,
 };

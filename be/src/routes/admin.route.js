@@ -215,6 +215,101 @@ router.put("/orders/:id/status", checkAuth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// ── Queue Management APIs ──────────────────────────────
+// ═══════════════════════════════════════════════════════
+
+// ── API: Get queue for a machine ──────────────────────
+router.get("/machine/:id/queue", checkAuth, async (req, res) => {
+  try {
+    const queue = await firebaseService.getMachineQueue(req.params.id);
+    return success(res, queue);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Force end a queue session (cancel serving or waiting) ─
+router.post("/machine/:id/queue/:queueId/end", checkAuth, async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    // Check if this entry is currently being served
+    const serving = await firebaseService.getCurrentServing(req.params.id);
+    const isCurrentlyServing = serving && serving.id === req.params.queueId;
+
+    // Remove from queue
+    await firebaseService.removeFromQueue(req.params.id, req.params.queueId);
+
+    // If was serving, serve the next person
+    if (isCurrentlyServing) {
+      const next = await firebaseService.serveNext(req.params.id);
+      if (next) {
+        try {
+          const notificationService = require("../services/notification.service");
+          notificationService.notifyTurnReady(req.params.id, next.id, next.walletAddress, next.expiresAt);
+          notificationService.notifyQueueUpdate(req.params.id, {
+            currentServing: next.walletAddress,
+            reason: "previous_session_ended",
+          });
+        } catch (_) { /* notification is best-effort */ }
+      }
+      return success(res, {
+        ended: serving.walletAddress,
+        nextServed: next ? next.walletAddress : null,
+        reason: reason || "Force ended by admin",
+      }, "Serving session ended, queue advanced");
+    }
+
+    return success(res, { reason: reason || "Removed by admin" }, "Queue entry removed");
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Force complete current serving + serve next ───
+router.post("/machine/:id/force-end-serving", checkAuth, async (req, res) => {
+  try {
+    const serving = await firebaseService.getCurrentServing(req.params.id);
+    if (!serving) {
+      return error(res, "No one is currently being served", 404);
+    }
+
+    await firebaseService.completeServing(req.params.id, serving.id);
+
+    // Also cancel any confirmed (un-dispensed) orders for this wallet
+    try {
+      const OrderModel = require("../models/order.model");
+      const orders = await OrderModel.getByWallet(serving.walletAddress, 10);
+      for (const o of orders) {
+        if (o.status === "confirmed" && o.machineId === req.params.id) {
+          await OrderModel.updateStatus(o.id, "failed");
+        }
+      }
+    } catch (_) { /* best-effort */ }
+
+    // Serve next
+    const next = await firebaseService.serveNext(req.params.id);
+    if (next) {
+      try {
+        const notificationService = require("../services/notification.service");
+        notificationService.notifyTurnReady(req.params.id, next.id, next.walletAddress, next.expiresAt);
+        notificationService.notifyQueueUpdate(req.params.id, {
+          currentServing: next.walletAddress,
+          reason: "admin_force_end",
+        });
+      } catch (_) { /* notification is best-effort */ }
+    }
+
+    return success(res, {
+      ended: serving.walletAddress,
+      nextServed: next ? next.walletAddress : null,
+    }, "Serving ended, queue advanced");
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
 // ── Login page ──────────────────────────────────────
 function loginPage() {
   return `<!doctype html>
