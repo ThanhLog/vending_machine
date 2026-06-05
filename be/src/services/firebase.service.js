@@ -7,6 +7,7 @@ const db = require("../config/firebase");
 const MACHINES_COLLECTION = "vending_machines";
 const SLOTS_COLLECTION = "slots";
 const QUEUE_COLLECTION = "queues";
+const ORDERS_COLLECTION = "orders";
 
 // ---------- Vending Machines ----------
 
@@ -266,6 +267,79 @@ async function expireQueueEntry(machineId, queueId) {
   });
 }
 
+// ---------- Orders ----------
+
+async function getOrders({ machineId, status, page, limit } = {}) {
+  let query = db.collection(ORDERS_COLLECTION);
+
+  if (machineId) {
+    query = query.where("machineId", "==", machineId);
+  }
+  if (status) {
+    query = query.where("status", "==", status);
+  }
+
+  // Get total count (approximate via snapshot size for simple queries)
+  const countSnapshot = await query.get();
+  const total = countSnapshot.size;
+
+  // Apply ordering and pagination
+  let dataQuery = query.orderBy("createdAt", "desc");
+
+  if (page && limit) {
+    const offset = (page - 1) * limit;
+    // Use offset-based pagination
+    // Get all and slice since Firestore doesn't support offset natively
+    const snapshot = await dataQuery.limit(page * limit).get();
+    const allDocs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const paginatedDocs = allDocs.slice(offset, offset + limit);
+    return {
+      orders: paginatedDocs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  const snapshot = await dataQuery.limit(limit || 50).get();
+  return {
+    orders: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+    total,
+    page: 1,
+    limit: limit || 50,
+    totalPages: 1,
+  };
+}
+
+async function getOrderStats() {
+  const snapshot = await db.collection(ORDERS_COLLECTION).get();
+  const orders = snapshot.docs.map((doc) => doc.data());
+
+  const total = orders.length;
+  const confirmed = orders.filter((o) => o.status === "confirmed").length;
+  const dispensed = orders.filter((o) => o.status === "dispensed").length;
+  const failed = orders.filter((o) => o.status === "failed").length;
+
+  // Total revenue in ETH
+  const totalETH = orders
+    .filter((o) => o.status !== "failed")
+    .reduce((sum, o) => sum + (parseFloat(o.priceETH) || 0), 0);
+
+  return { total, confirmed, dispensed, failed, totalETH };
+}
+
+async function updateOrderStatus(orderId, status) {
+  const updateData = {
+    status,
+    updatedAt: new Date().toISOString(),
+  };
+  if (status === "dispensed") {
+    updateData.dispensedAt = new Date().toISOString();
+  }
+  await db.collection(ORDERS_COLLECTION).doc(orderId).update(updateData);
+}
+
 module.exports = {
   getAllMachines,
   getMachineById,
@@ -282,4 +356,7 @@ module.exports = {
   completeServing,
   expireQueueEntry,
   incrementOrderCounter,
+  getOrders,
+  getOrderStats,
+  updateOrderStatus,
 };

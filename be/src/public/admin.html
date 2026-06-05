@@ -88,6 +88,7 @@
     <div class="tabs">
       <div class="tab active" onclick="switchTab('products')">📦 San Pham</div>
       <div class="tab" onclick="switchTab('devices')">🖥️ Thiet Bi</div>
+      <div class="tab" onclick="switchTab('orders')">🛒 Don Hang</div>
     </div>
 
     <!-- ═══════════════════════════════════════════════ -->
@@ -126,6 +127,62 @@
         <div id="deviceAlertSuccess" class="alert alert-success"></div>
         <div id="deviceAlertError" class="alert alert-error"></div>
         <div id="deviceTable"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- Orders Tab -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-orders">
+      <!-- Stats Cards -->
+      <div class="card">
+        <h2>📊 Thong Ke Don Hang</h2>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+          <div style="flex:1;min-width:120px;background:#0f172a;padding:16px;border-radius:10px;text-align:center">
+            <div style="font-size:28px;font-weight:bold;color:#06b6d4" id="statTotal">-</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px">Tong Don</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#0f172a;padding:16px;border-radius:10px;text-align:center">
+            <div style="font-size:28px;font-weight:bold;color:#10b981" id="statDispensed">-</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px">Da Giao</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#0f172a;padding:16px;border-radius:10px;text-align:center">
+            <div style="font-size:28px;font-weight:bold;color:#f59e0b" id="statConfirmed">-</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px">Cho Giao</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:#0f172a;padding:16px;border-radius:10px;text-align:center">
+            <div style="font-size:28px;font-weight:bold;color:#ef4444" id="statFailed">-</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px">That Bai</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:#0f172a;padding:16px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:bold;color:#8b5cf6" id="statRevenue">- ETH</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px">Doanh Thu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">🛒 Danh Sach Don Hang</h2>
+          <button class="btn" onclick="loadOrders()" style="background:#334155;color:#fff;padding:8px 16px">🔄 Tai Lai</button>
+        </div>
+        <div class="form-row">
+          <select id="orderMachineFilter" onchange="loadOrders()" style="flex:1">
+            <option value="">-- Tat Ca May --</option>
+          </select>
+          <select id="orderStatusFilter" onchange="loadOrders()" style="flex:0.5">
+            <option value="">Tat Ca Trang Thai</option>
+            <option value="confirmed">Cho Giao</option>
+            <option value="dispensed">Da Giao</option>
+            <option value="failed">That Bai</option>
+          </select>
+        </div>
+        <div id="orderAlertSuccess" class="alert alert-success"></div>
+        <div id="orderAlertError" class="alert alert-error"></div>
+        <div id="orderTable"></div>
+        <!-- Pagination -->
+        <div id="orderPagination" style="margin-top:16px;display:flex;justify-content:center;gap:8px;align-items:center"></div>
       </div>
     </div>
   </div>
@@ -222,11 +279,12 @@
     // ═══════════════════════════════════════════════════
     function switchTab(tab) {
       document.querySelectorAll('.tab').forEach((t, i) => {
-        t.classList.toggle('active', (tab === 'products' && i === 0) || (tab === 'devices' && i === 1));
+        t.classList.toggle('active', (tab === 'products' && i === 0) || (tab === 'devices' && i === 1) || (tab === 'orders' && i === 2));
       });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.getElementById('tab-' + tab).classList.add('active');
       if (tab === 'devices') loadDevices();
+      if (tab === 'orders') { loadOrderMachines(); loadOrders(); loadOrderStats(); }
     }
 
     // ═══════════════════════════════════════════════════
@@ -639,6 +697,196 @@
     // ── Device alert ──────────────────────────────────
     function showDeviceAlert(msg, type) {
       const el = document.getElementById(type === 'error' ? 'deviceAlertError' : 'deviceAlertSuccess');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ── Order / Purchase Management ───────────────────
+    // ═══════════════════════════════════════════════════
+
+    let orderPage = 1;
+    let orderLimit = 20;
+
+    // ── Load machine filter dropdown for orders ────────
+    async function loadOrderMachines() {
+      try {
+        const res = await fetch(`${BASE}/machines`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        if (!data.success) return;
+        const sel = document.getElementById('orderMachineFilter');
+        sel.innerHTML = '<option value="">-- Tat Ca May --</option>';
+        data.data.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.name || m.id} (${m.id})`;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Load order stats ───────────────────────────────
+    async function loadOrderStats() {
+      try {
+        const res = await fetch(`${BASE}/orders/stats`, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        if (!data.success) return;
+        const s = data.data;
+        document.getElementById('statTotal').textContent = s.total;
+        document.getElementById('statDispensed').textContent = s.dispensed;
+        document.getElementById('statConfirmed').textContent = s.confirmed;
+        document.getElementById('statFailed').textContent = s.failed;
+        document.getElementById('statRevenue').textContent = parseFloat(s.totalETH).toFixed(4) + ' ETH';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Load orders ────────────────────────────────────
+    async function loadOrders(newPage) {
+      if (newPage) orderPage = newPage;
+      try {
+        const machineId = document.getElementById('orderMachineFilter').value;
+        const status = document.getElementById('orderStatusFilter').value;
+        let url = `${BASE}/orders?page=${orderPage}&limit=${orderLimit}`;
+        if (machineId) url += `&machineId=${encodeURIComponent(machineId)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${ADMIN_PASS}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          renderOrderTable(data.data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ── Render order table ─────────────────────────────
+    function renderOrderTable(result) {
+      const container = document.getElementById('orderTable');
+      const orders = result.orders || [];
+
+      if (!orders.length) {
+        container.innerHTML = '<div class="empty">Chua co don hang nao.</div>';
+        document.getElementById('orderPagination').innerHTML = '';
+        return;
+      }
+
+      const statusClassMap = {
+        confirmed: 'badge-avail',
+        dispensed: 'badge-online',
+        failed: 'badge-sold'
+      };
+      const statusTextMap = {
+        confirmed: 'Cho Giao',
+        dispensed: 'Da Giao',
+        failed: 'That Bai'
+      };
+
+      let html = `<table>
+        <thead><tr>
+          <th>Ma DH</th><th>Vi</th><th>May</th><th>San Pham</th><th>Khe</th><th>Gia (ETH)</th><th>Tx Hash</th><th>Trang Thai</th><th>Ngay Tao</th><th></th>
+        </tr></thead><tbody>`;
+
+      orders.forEach(o => {
+        const shortId = (o.id || '').substring(0, 10) + '...';
+        const shortWallet = (o.walletAddress || '').substring(0, 8) + '...';
+        const shortTx = (o.txHash || '').substring(0, 10) + '...';
+        const date = o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN') : '-';
+        const statusClass = statusClassMap[o.status] || 'badge-unavail';
+        const statusText = statusTextMap[o.status] || o.status;
+
+        html += `<tr>
+          <td><span title="${o.id}" class="text-small" style="font-family:monospace">${shortId}</span></td>
+          <td><span title="${o.walletAddress}" class="text-small" style="font-family:monospace">${shortWallet}</span></td>
+          <td><span class="slot-badge">${o.machineId || '-'}</span></td>
+          <td><b>${o.productName || '-'}</b></td>
+          <td>${o.slot || '-'}</td>
+          <td>${o.priceETH || '0'} ETH</td>
+          <td><a href="https://sepolia.etherscan.io/tx/${o.txHash}" target="_blank" title="${o.txHash}" style="color:#06b6d4;font-family:monospace;font-size:12px">${shortTx}</a></td>
+          <td><span class="badge ${statusClass}">${statusText}</span></td>
+          <td><span class="text-small">${date}</span></td>
+          <td class="actions">`;
+
+        if (o.status === 'confirmed') {
+          html += `<button class="btn btn-avail" style="padding:5px 10px;font-size:11px" onclick="updateOrderStatus('${o.id}','dispensed')" title="Danh dau da giao hang">✅ Giao</button>
+                   <button class="btn btn-del" style="padding:5px 10px;font-size:11px" onclick="updateOrderStatus('${o.id}','failed')" title="Danh dau that bai">❌ Loi</button>`;
+        } else if (o.status === 'dispensed') {
+          html += `<span class="text-small" style="color:#10b981">✅ ${o.dispensedAt ? new Date(o.dispensedAt).toLocaleString('vi-VN') : ''}</span>`;
+        } else if (o.status === 'failed') {
+          html += `<button class="btn btn-edit" style="padding:5px 10px;font-size:11px" onclick="updateOrderStatus('${o.id}','confirmed')" title="Khoi phuc lai">🔄 Reset</button>`;
+        }
+
+        html += `</td></tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Pagination
+      renderOrderPagination(result);
+    }
+
+    // ── Render order pagination ────────────────────────
+    function renderOrderPagination(result) {
+      const container = document.getElementById('orderPagination');
+      const totalPages = result.totalPages || 1;
+      const total = result.total || 0;
+      const page = result.page || 1;
+
+      if (totalPages <= 1) {
+        container.innerHTML = `<span class="text-small">Tong: ${total} don hang</span>`;
+        return;
+      }
+
+      let html = `<button class="btn" style="padding:6px 14px;background:#334155;color:#fff;font-size:13px" onclick="loadOrders(${page - 1})" ${page <= 1 ? 'disabled' : ''}>◀ Truoc</button>`;
+      html += `<span class="text-small" style="margin:0 12px">Trang ${page} / ${totalPages} (${total} don)</span>`;
+      html += `<button class="btn" style="padding:6px 14px;background:#334155;color:#fff;font-size:13px" onclick="loadOrders(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Sau ▶</button>`;
+
+      container.innerHTML = html;
+    }
+
+    // ── Update order status ────────────────────────────
+    async function updateOrderStatus(orderId, newStatus) {
+      const statusLabel = { dispensed: 'Da Giao', failed: 'That Bai', confirmed: 'Cho Giao' };
+      const label = statusLabel[newStatus] || newStatus;
+      if (!confirm(`Cap nhat don hang ${orderId} thanh "${label}"?`)) return;
+
+      try {
+        const res = await fetch(`${BASE}/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ADMIN_PASS}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showOrderAlert(`Don hang ${orderId} -> ${label}`, 'success');
+          await loadOrders();
+          await loadOrderStats();
+        } else {
+          showOrderAlert(data.message || 'Loi!', 'error');
+        }
+      } catch (e) {
+        showOrderAlert('Loi ket noi: ' + e.message, 'error');
+      }
+    }
+
+    // ── Order alert ────────────────────────────────────
+    function showOrderAlert(msg, type) {
+      const el = document.getElementById(type === 'error' ? 'orderAlertError' : 'orderAlertSuccess');
       el.textContent = msg;
       el.style.display = 'block';
       setTimeout(() => el.style.display = 'none', 3000);

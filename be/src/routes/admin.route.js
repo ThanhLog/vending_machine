@@ -168,6 +168,53 @@ router.delete("/devices/:id", checkAuth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// ── Order / Purchase Management APIs ───────────────────
+// ═══════════════════════════════════════════════════════
+
+// ── API: Get all orders (with filters) ─────────────────
+router.get("/orders", checkAuth, async (req, res) => {
+  try {
+    const { machineId, status, page, limit } = req.query;
+    const pageNum = parseInt(page) || 1;
+    const limitNum = Math.min(parseInt(limit) || 50, 200);
+
+    const result = await firebaseService.getOrders({
+      machineId: machineId || null,
+      status: status || null,
+      page: pageNum,
+      limit: limitNum,
+    });
+    return success(res, result);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Get order stats / summary ─────────────────────
+router.get("/orders/stats", checkAuth, async (req, res) => {
+  try {
+    const stats = await firebaseService.getOrderStats();
+    return success(res, stats);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
+// ── API: Update order status ───────────────────────────
+router.put("/orders/:id/status", checkAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status || !["dispensed", "failed", "confirmed"].includes(status)) {
+      return error(res, "status must be one of: dispensed, failed, confirmed", 400);
+    }
+    await firebaseService.updateOrderStatus(req.params.id, status);
+    return success(res, null, `Order ${req.params.id} -> ${status}`);
+  } catch (err) {
+    return error(res, err.message);
+  }
+});
+
 // ── Login page ──────────────────────────────────────
 function loginPage() {
   return `<!doctype html>
